@@ -1,7 +1,7 @@
 /*
  *  config_file_parser.c
  *
- *  Copyright 2014-2022 Michael Zillgith
+ *  Copyright 2014-2023 Michael Zillgith
  *
  *  This file is part of libIEC61850.
  *
@@ -27,6 +27,8 @@
 
 #include "libiec61850_platform_includes.h"
 #include "stack_config.h"
+
+#include <ctype.h>
 
 #define READ_BUFFER_MAX_SIZE 1024
 
@@ -114,6 +116,112 @@ ConfigFileParser_createModelFromConfigFileEx(const char* filename)
     return model;
 }
 
+static bool
+setValue(char* lineBuffer, DataAttribute* dataAttribute)
+{
+    char* valueIndicator = strchr((char*) lineBuffer, '=');
+
+    if (valueIndicator != NULL) {
+        switch (dataAttribute->type) {
+        case IEC61850_UNICODE_STRING_255:
+            {
+                char* stringStart = valueIndicator + 2;
+                terminateString(stringStart, '"');
+                dataAttribute->mmsValue = MmsValue_newMmsString(stringStart);
+            }
+            break;
+
+        case IEC61850_VISIBLE_STRING_255:
+        case IEC61850_VISIBLE_STRING_129:
+        case IEC61850_VISIBLE_STRING_65:
+        case IEC61850_VISIBLE_STRING_64:
+        case IEC61850_VISIBLE_STRING_32:
+        case IEC61850_CURRENCY:
+            {
+                char* stringStart = valueIndicator + 2;
+                terminateString(stringStart, '"');
+                dataAttribute->mmsValue = MmsValue_newVisibleString(stringStart);
+            }
+            break;
+
+        case IEC61850_INT8:
+        case IEC61850_INT16:
+        case IEC61850_INT32:
+        case IEC61850_INT64:
+        case IEC61850_INT128:
+        case IEC61850_ENUMERATED:
+            {
+                int32_t intValue;
+                if (sscanf(valueIndicator + 1, "%i", &intValue) != 1) goto exit_error;
+                dataAttribute->mmsValue = MmsValue_newIntegerFromInt32(intValue);
+            }
+            break;
+
+        case IEC61850_INT8U:
+        case IEC61850_INT16U:
+        case IEC61850_INT24U:
+        case IEC61850_INT32U:
+            {
+                uint32_t uintValue;
+                if (sscanf(valueIndicator + 1, "%u", &uintValue) != 1) goto exit_error;
+                dataAttribute->mmsValue = MmsValue_newUnsignedFromUint32(uintValue);
+            }
+            break;
+
+        case IEC61850_FLOAT32:
+            {
+                float floatValue;
+                if (sscanf(valueIndicator + 1, "%f", &floatValue) != 1) goto exit_error;
+                dataAttribute->mmsValue = MmsValue_newFloat(floatValue);
+            }
+            break;
+
+        case IEC61850_FLOAT64:
+            {
+                double doubleValue;
+                if (sscanf(valueIndicator + 1, "%lf", &doubleValue) != 1) goto exit_error;
+                dataAttribute->mmsValue = MmsValue_newDouble(doubleValue);
+            }
+            break;
+
+        case IEC61850_BOOLEAN:
+            {
+                int boolean;
+                if (sscanf(valueIndicator + 1, "%i", &boolean) != 1) goto exit_error;
+                dataAttribute->mmsValue = MmsValue_newBoolean((bool) boolean);
+            }
+            break;
+
+        case IEC61850_OPTFLDS:
+            {
+                int value;
+                if (sscanf(valueIndicator + 1, "%i", &value) != 1) goto exit_error;
+                dataAttribute->mmsValue = MmsValue_newBitString(-10);
+                MmsValue_setBitStringFromIntegerBigEndian(dataAttribute->mmsValue, value);
+            }
+            break;
+
+        case IEC61850_TRGOPS:
+            {
+                int value;
+                if (sscanf(valueIndicator + 1, "%i", &value) != 1) goto exit_error;
+                dataAttribute->mmsValue = MmsValue_newBitString(-6);
+                MmsValue_setBitStringFromIntegerBigEndian(dataAttribute->mmsValue, value);
+            }
+            break;
+
+        default:
+            break;
+
+        }
+    }
+
+    return true;
+
+exit_error:
+    return false;
+}
+
 IedModel*
 ConfigFileParser_createModelFromConfigFile(FileHandle fileHandle)
 {
@@ -121,11 +229,14 @@ ConfigFileParser_createModelFromConfigFile(FileHandle fileHandle)
 
     bool stateInModel = false;
     int indendation = 0;
+    bool inArray = false;
+    bool inArrayElement = false;
 
     IedModel* model = NULL;
     LogicalDevice* currentLD = NULL;
     LogicalNode* currentLN = NULL;
     ModelNode* currentModelNode = NULL;
+    ModelNode* currentArrayNode = NULL;
     DataSet* currentDataSet = NULL;
     GSEControlBlock* currentGoCB = NULL;
     SVControlBlock* currentSMVCB = NULL;
@@ -144,6 +255,18 @@ ConfigFileParser_createModelFromConfigFile(FileHandle fileHandle)
         if (bytesRead > 0) {
             lineBuffer[bytesRead] = 0;
 
+            /* trim trailing spaces */
+            while (bytesRead > 1) {
+                bytesRead--;
+
+                if (isspace(lineBuffer[bytesRead])) {
+                    lineBuffer[bytesRead] = 0;
+                }
+                else {
+                    break;
+                }
+            }
+
             if (stateInModel) {
 
                 if (StringUtils_startsWith((char*) lineBuffer, "}")) {
@@ -161,11 +284,21 @@ ConfigFileParser_createModelFromConfigFile(FileHandle fileHandle)
                         indendation = 3;
                     }
                     else if (indendation > 4) {
+
+                        if (inArrayElement && currentModelNode->parent == currentArrayNode) {
+                            inArrayElement = false;
+                        }
+                        else {
+                            indendation--;
+                        }
+
+                        if (inArray && currentModelNode == currentArrayNode) {
+                            inArray = false;
+                        }
+
                         currentModelNode = currentModelNode->parent;
-                        indendation--;
                     }
                 }
-
                 else if (indendation == 1) {
                     if (StringUtils_startsWith((char*) lineBuffer, "LD")) {
                         indendation = 2;
@@ -210,7 +343,9 @@ ConfigFileParser_createModelFromConfigFile(FileHandle fileHandle)
 
                         int arrayElements = 0;
 
-                        sscanf((char*) lineBuffer, "DO(%129s %i)", nameString, &arrayElements);
+                        if (sscanf((char*)lineBuffer, "DO(%129s %i)", nameString, &arrayElements) != 2) {
+                            goto exit_error;
+                        }
 
                         currentModelNode = (ModelNode*)
                                 DataObject_create(nameString, (ModelNode*) currentLN, arrayElements);
@@ -218,7 +353,10 @@ ConfigFileParser_createModelFromConfigFile(FileHandle fileHandle)
                     else if (StringUtils_startsWith((char*) lineBuffer, "DS")) {
                         indendation = 4;
 
-                        sscanf((char*) lineBuffer, "DS(%129s)", nameString);
+                        if (sscanf((char*)lineBuffer, "DS(%129s)", nameString) != 1) {
+                            goto exit_error;
+                        }
+
                         terminateString(nameString, ')');
 
                         currentDataSet = DataSet_create(nameString, currentLN);
@@ -296,7 +434,6 @@ ConfigFileParser_createModelFromConfigFile(FileHandle fileHandle)
                                 nameString3, confRef, fixedOffs, minTime, maxTime);
 
                         indendation = 4;
-
                     }
                     else if (StringUtils_startsWith((char*) lineBuffer, "SMVC")) {
                         uint32_t confRev;
@@ -313,7 +450,6 @@ ConfigFileParser_createModelFromConfigFile(FileHandle fileHandle)
                         currentSMVCB = SVControlBlock_create(nameString, currentLN, nameString2, nameString3, confRev, smpMod, smpRate, optFlds, (bool) isUnicast);
 
                         indendation = 4;
-
                     }
 #if (CONFIG_IEC61850_SETTING_GROUPS == 1)
                     else if (StringUtils_startsWith((char*) lineBuffer, "SG")) {
@@ -357,6 +493,41 @@ ConfigFileParser_createModelFromConfigFile(FileHandle fileHandle)
 
                         currentModelNode = (ModelNode*) DataObject_create(nameString, currentModelNode, arrayElements);
                     }
+                    else if (StringUtils_startsWith((char*) lineBuffer, "[")) {
+                        if (inArray == false) {
+                            goto exit_error;
+                        } 
+
+                        int arrayIndex;
+
+                        if (sscanf((char*)lineBuffer, "[%i]", &arrayIndex) != 1) {
+                            goto exit_error;
+                        }
+
+                        if (StringUtils_endsWith((char*)lineBuffer, ";")) {
+                            /* array of basic data attribute */
+                            ModelNode* arrayElementNode = ModelNode_getChildWithIdx(currentArrayNode, arrayIndex);
+
+                            if (arrayElementNode) {
+                                setValue((char*)lineBuffer, (DataAttribute*)arrayElementNode);
+                            }
+                            else {
+                                goto exit_error;
+                            }
+
+                        }
+                        else if (StringUtils_endsWith((char*)lineBuffer, "{")) {
+                            /* array of constructed data attribtute */
+                            currentModelNode = ModelNode_getChildWithIdx(currentArrayNode, arrayIndex);
+
+                            if (currentModelNode) {
+                                inArrayElement = true;
+                            }
+                            else {
+                                goto exit_error;
+                            }
+                        }
+                    }
                     else if (StringUtils_startsWith((char*) lineBuffer, "DA")) {
 
                         int arrayElements = 0;
@@ -366,107 +537,19 @@ ConfigFileParser_createModelFromConfigFile(FileHandle fileHandle)
                         int triggerOptions = 0;
                         uint32_t sAddr = 0;
 
-                        sscanf((char*) lineBuffer, "DA(%129s %i %i %i %i %u)", nameString, &arrayElements,  &attributeType, &functionalConstraint, &triggerOptions, &sAddr);
+                        if (sscanf((char*)lineBuffer, "DA(%129s %i %i %i %i %u)", nameString, &arrayElements, &attributeType, &functionalConstraint, &triggerOptions, &sAddr) != 6) {
+                            goto exit_error;
+                        }
 
                         DataAttribute* dataAttribute = DataAttribute_create(nameString, currentModelNode,
                                 (DataAttributeType) attributeType, (FunctionalConstraint) functionalConstraint, triggerOptions, arrayElements, sAddr);
 
-                        char* valueIndicator = strchr((char*) lineBuffer, '=');
-
-                        if (valueIndicator != NULL) {
-                            switch (dataAttribute->type) {
-                            case IEC61850_UNICODE_STRING_255:
-                                {
-                                    char* stringStart = valueIndicator + 2;
-                                    terminateString(stringStart, '"');
-                                    dataAttribute->mmsValue = MmsValue_newMmsString(stringStart);
-                                }
-                                break;
-
-                            case IEC61850_VISIBLE_STRING_255:
-                            case IEC61850_VISIBLE_STRING_129:
-                            case IEC61850_VISIBLE_STRING_65:
-                            case IEC61850_VISIBLE_STRING_64:
-                            case IEC61850_VISIBLE_STRING_32:
-                            case IEC61850_CURRENCY:
-                                {
-                                    char* stringStart = valueIndicator + 2;
-                                    terminateString(stringStart, '"');
-                                    dataAttribute->mmsValue = MmsValue_newVisibleString(stringStart);
-                                }
-                                break;
-
-                            case IEC61850_INT8:
-                            case IEC61850_INT16:
-                            case IEC61850_INT32:
-                            case IEC61850_INT64:
-                            case IEC61850_INT128:
-                            case IEC61850_ENUMERATED:
-                                {
-                                    int32_t intValue;
-                                    if (sscanf(valueIndicator + 1, "%i", &intValue) != 1) goto exit_error;
-                                    dataAttribute->mmsValue = MmsValue_newIntegerFromInt32(intValue);
-                                }
-                                break;
-
-                            case IEC61850_INT8U:
-                            case IEC61850_INT16U:
-                            case IEC61850_INT24U:
-                            case IEC61850_INT32U:
-                                {
-                                    uint32_t uintValue;
-                                    if (sscanf(valueIndicator + 1, "%u", &uintValue) != 1) goto exit_error;
-                                    dataAttribute->mmsValue = MmsValue_newUnsignedFromUint32(uintValue);
-                                }
-                                break;
-
-                            case IEC61850_FLOAT32:
-                                {
-                                    float floatValue;
-                                    if (sscanf(valueIndicator + 1, "%f", &floatValue) != 1) goto exit_error;
-                                    dataAttribute->mmsValue = MmsValue_newFloat(floatValue);
-                                }
-                                break;
-
-                            case IEC61850_FLOAT64:
-                                {
-                                    double doubleValue;
-                                    if (sscanf(valueIndicator + 1, "%lf", &doubleValue) != 1) goto exit_error;
-                                    dataAttribute->mmsValue = MmsValue_newDouble(doubleValue);
-                                }
-                                break;
-
-                            case IEC61850_BOOLEAN:
-                                {
-                                    int boolean;
-                                    if (sscanf(valueIndicator + 1, "%i", &boolean) != 1) goto exit_error;
-                                    dataAttribute->mmsValue = MmsValue_newBoolean((bool) boolean);
-                                }
-                                break;
-
-                            case IEC61850_OPTFLDS:
-                                {
-                                    int value;
-                                    if (sscanf(valueIndicator + 1, "%i", &value) != 1) goto exit_error;
-                                    dataAttribute->mmsValue = MmsValue_newBitString(-10);
-                                    MmsValue_setBitStringFromIntegerBigEndian(dataAttribute->mmsValue, value);
-                                }
-                                break;
-
-                            case IEC61850_TRGOPS:
-                                {
-                                    int value;
-                                    if (sscanf(valueIndicator + 1, "%i", &value) != 1) goto exit_error;
-                                    dataAttribute->mmsValue = MmsValue_newBitString(-6);
-                                    MmsValue_setBitStringFromIntegerBigEndian(dataAttribute->mmsValue, value);
-                                }
-                                break;
-
-                            default:
-                                break;
-
-                            }
+                        if (arrayElements > 0) {
+                            inArray = true;
+                            currentArrayNode = (ModelNode*)dataAttribute;
                         }
+
+                        setValue((char*)lineBuffer, dataAttribute);
 
                         int lineLength = (int) strlen((char*) lineBuffer);
 
@@ -541,8 +624,6 @@ ConfigFileParser_createModelFromConfigFile(FileHandle fileHandle)
                     else
                         goto exit_error;
                 }
-
-
             }
             else {
                 if (StringUtils_startsWith((char*) lineBuffer, "MODEL{")) {
@@ -552,7 +633,9 @@ ConfigFileParser_createModelFromConfigFile(FileHandle fileHandle)
                     indendation = 1;
                 }
                 else if (StringUtils_startsWith((char*) lineBuffer, "MODEL(")) {
-                    sscanf((char*) lineBuffer, "MODEL(%129s)", nameString);
+                    if (sscanf((char*)lineBuffer, "MODEL(%129s)", nameString) != 1)
+                        goto exit_error;
+
                     terminateString(nameString, ')');
                     model = IedModel_create(nameString);
                     stateInModel = true;
