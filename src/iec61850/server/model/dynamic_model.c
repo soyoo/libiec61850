@@ -611,21 +611,24 @@ DataObject_create(const char* name, ModelNode* parent, int arrayElements)
         self->elementCount = arrayElements;
         self->arrayIndex = -1;
 
-        if (arrayElements > 0) {
+        if (arrayElements > 0)
+        {
             int i;
 
-            for (i = 0; i < arrayElements; i++) {
+            for (i = 0; i < arrayElements; i++)
+            {
                 DataObject* arrayElement = (DataObject*) GLOBAL_MALLOC(sizeof(DataObject));
 
-                if (self) {
-                    self->name = NULL;
-                    self->modelType = DataObjectModelType;
-                    self->firstChild = NULL;
-                    self->parent = parent;
-                    self->sibling = NULL;
+                if (arrayElement)
+                {
+                    arrayElement->name = NULL;
+                    arrayElement->modelType = DataObjectModelType;
+                    arrayElement->firstChild = NULL;
+                    arrayElement->parent = parent;
+                    arrayElement->sibling = NULL;
 
-                    self->elementCount = 0;
-                    self->arrayIndex = i;
+                    arrayElement->elementCount = 0;
+                    arrayElement->arrayIndex = i;
 
                     DataObject_addChild(self, (ModelNode*) arrayElement);
                 }

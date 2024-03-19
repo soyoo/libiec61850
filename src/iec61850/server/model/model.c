@@ -760,12 +760,14 @@ ModelNode_getChildWithIdx(ModelNode* self, int idx)
 {
     ModelNode* foundElement = NULL;
 
-    if (self->modelType == DataObjectModelType || self->modelType == DataAttributeModelType) {
+    if (self->modelType == DataObjectModelType || self->modelType == DataAttributeModelType)
+    {
         ModelNode* nextNode = self->firstChild;
 
         int currentIdx = 0;
 
-        while (nextNode) {
+        while (nextNode)
+        {
             if (currentIdx == idx) {
                 foundElement = nextNode;
                 break;
