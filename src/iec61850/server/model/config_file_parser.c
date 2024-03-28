@@ -250,12 +250,14 @@ ConfigFileParser_createModelFromConfigFile(FileHandle fileHandle)
 
     int currentLine = 0;
 
-    while (bytesRead > 0) {
+    while (bytesRead > 0)
+    {
         bytesRead = readLine(fileHandle, lineBuffer, READ_BUFFER_MAX_SIZE);
 
         currentLine++;
 
-        if (bytesRead > 0) {
+        if (bytesRead > 0)
+        {
             lineBuffer[bytesRead] = 0;
 
             /* trim trailing spaces */
@@ -270,8 +272,8 @@ ConfigFileParser_createModelFromConfigFile(FileHandle fileHandle)
                 }
             }
 
-            if (stateInModel) {
-
+            if (stateInModel)
+            {
                 if (StringUtils_startsWith((char*) lineBuffer, "}")) {
                     if (indendation == 1) {
                         stateInModel = false;
@@ -302,8 +304,11 @@ ConfigFileParser_createModelFromConfigFile(FileHandle fileHandle)
                         currentModelNode = currentModelNode->parent;
                     }
                 }
-                else if (indendation == 1) {
-                    if (StringUtils_startsWith((char*) lineBuffer, "LD")) {
+
+                else if (indendation == 1)
+                {
+                    if (StringUtils_startsWith((char*) lineBuffer, "LD"))
+                    {
                         indendation = 2;
 
                         char ldName[65];
@@ -314,7 +319,8 @@ ConfigFileParser_createModelFromConfigFile(FileHandle fileHandle)
 
                         terminateString(nameString, ')');
 
-                        if (ldName[0] != 0) {
+                        if (ldName[0] != 0)
+                        {
                             terminateString(ldName, ')');
 
                             currentLD = LogicalDevice_createEx(nameString, model, ldName);
@@ -326,8 +332,10 @@ ConfigFileParser_createModelFromConfigFile(FileHandle fileHandle)
                     else
                         goto exit_error;
                 }
-                else if (indendation == 2) {
-                    if (StringUtils_startsWith((char*) lineBuffer, "LN")) {
+                else if (indendation == 2)
+                {
+                    if (StringUtils_startsWith((char*) lineBuffer, "LN"))
+                    {
                         indendation = 3;
 
                         if (sscanf((char*) lineBuffer, "LN(%129s)", nameString) < 1)
@@ -340,8 +348,10 @@ ConfigFileParser_createModelFromConfigFile(FileHandle fileHandle)
                     else
                         goto exit_error;
                 }
-                else if (indendation == 3) {
-                    if (StringUtils_startsWith((char*) lineBuffer, "DO")) {
+                else if (indendation == 3)
+                {
+                    if (StringUtils_startsWith((char*) lineBuffer, "DO"))
+                    {
                         indendation = 4;
 
                         int arrayElements = 0;
@@ -353,7 +363,8 @@ ConfigFileParser_createModelFromConfigFile(FileHandle fileHandle)
                         currentModelNode = (ModelNode*)
                                 DataObject_create(nameString, (ModelNode*) currentLN, arrayElements);
                     }
-                    else if (StringUtils_startsWith((char*) lineBuffer, "DS")) {
+                    else if (StringUtils_startsWith((char*) lineBuffer, "DS"))
+                    {
                         indendation = 4;
 
                         if (sscanf((char*)lineBuffer, "DS(%129s)", nameString) != 1) {
@@ -364,7 +375,8 @@ ConfigFileParser_createModelFromConfigFile(FileHandle fileHandle)
 
                         currentDataSet = DataSet_create(nameString, currentLN);
                     }
-                    else if (StringUtils_startsWith((char*) lineBuffer, "RC")) {
+                    else if (StringUtils_startsWith((char*) lineBuffer, "RC"))
+                    {
                         int isBuffered;
                         uint32_t confRef;
                         int trgOps;
@@ -391,7 +403,8 @@ ConfigFileParser_createModelFromConfigFile(FileHandle fileHandle)
                         ReportControlBlock_create(nameString, currentLN, rptId,
                                 (bool) isBuffered, dataSetName, confRef, trgOps, options, bufTm, intgPd);
                     }
-                    else if (StringUtils_startsWith((char*) lineBuffer, "LC")) {
+                    else if (StringUtils_startsWith((char*) lineBuffer, "LC"))
+                    {
                         uint32_t trgOps;
                         uint32_t intgPd;
                         int logEna;
@@ -412,7 +425,8 @@ ConfigFileParser_createModelFromConfigFile(FileHandle fileHandle)
 
                         LogControlBlock_create(nameString, currentLN, dataSet, logRef, trgOps, intgPd, logEna, withReasonCode);
                     }
-                    else if (StringUtils_startsWith((char*) lineBuffer, "LOG")) {
+                    else if (StringUtils_startsWith((char*) lineBuffer, "LOG"))
+                    {
                         int matchedItems = sscanf((char*) lineBuffer, "LOG(%129s)", nameString);
 
                         if (matchedItems < 1) goto exit_error;
@@ -422,7 +436,8 @@ ConfigFileParser_createModelFromConfigFile(FileHandle fileHandle)
 
                         Log_create(nameString, currentLN);
                     }
-                    else if (StringUtils_startsWith((char*) lineBuffer, "GC")) {
+                    else if (StringUtils_startsWith((char*) lineBuffer, "GC"))
+                    {
                         uint32_t confRef;
                         int fixedOffs;
                         int minTime = -1;
@@ -438,7 +453,8 @@ ConfigFileParser_createModelFromConfigFile(FileHandle fileHandle)
 
                         indendation = 4;
                     }
-                    else if (StringUtils_startsWith((char*) lineBuffer, "SMVC")) {
+                    else if (StringUtils_startsWith((char*) lineBuffer, "SMVC"))
+                    {
                         uint32_t confRev;
                         int smpMod;
                         int smpRate;
@@ -455,7 +471,8 @@ ConfigFileParser_createModelFromConfigFile(FileHandle fileHandle)
                         indendation = 4;
                     }
 #if (CONFIG_IEC61850_SETTING_GROUPS == 1)
-                    else if (StringUtils_startsWith((char*) lineBuffer, "SG")) {
+                    else if (StringUtils_startsWith((char*) lineBuffer, "SG"))
+                    {
 
                         if (strcmp(currentLN->name, "LLN0") != 0) {
                             if (DEBUG_IED_SERVER)
@@ -484,8 +501,10 @@ ConfigFileParser_createModelFromConfigFile(FileHandle fileHandle)
                     }
 
                 }
-                else if (indendation > 3) {
-                    if (StringUtils_startsWith((char*) lineBuffer, "DO")) {
+                else if (indendation > 3)
+                {
+                    if (StringUtils_startsWith((char*) lineBuffer, "DO"))
+                    {
                         indendation++;
 
                         int arrayElements = 0;
@@ -507,7 +526,8 @@ ConfigFileParser_createModelFromConfigFile(FileHandle fileHandle)
                             goto exit_error;
                         }
 
-                        if (StringUtils_endsWith((char*)lineBuffer, ";")) {
+                        if (StringUtils_endsWith((char*)lineBuffer, ";"))
+                        {
                             /* array of basic data attribute */
                             ModelNode* arrayElementNode = ModelNode_getChildWithIdx(currentArrayNode, arrayIndex);
 
@@ -517,9 +537,9 @@ ConfigFileParser_createModelFromConfigFile(FileHandle fileHandle)
                             else {
                                 goto exit_error;
                             }
-
                         }
-                        else if (StringUtils_endsWith((char*)lineBuffer, "{")) {
+                        else if (StringUtils_endsWith((char*)lineBuffer, "{"))
+                        {
                             /* array of constructed data attribtute */
                             currentModelNode = ModelNode_getChildWithIdx(currentArrayNode, arrayIndex);
 
@@ -531,8 +551,8 @@ ConfigFileParser_createModelFromConfigFile(FileHandle fileHandle)
                             }
                         }
                     }
-                    else if (StringUtils_startsWith((char*) lineBuffer, "DA")) {
-
+                    else if (StringUtils_startsWith((char*) lineBuffer, "DA"))
+                    {
                         int arrayElements = 0;
 
                         int attributeType = 0;
@@ -561,7 +581,8 @@ ConfigFileParser_createModelFromConfigFile(FileHandle fileHandle)
                             currentModelNode = (ModelNode*) dataAttribute;
                         }
                     }
-                    else if (StringUtils_startsWith((char*) lineBuffer, "DE")) {
+                    else if (StringUtils_startsWith((char*) lineBuffer, "DE"))
+                    {
                         char* start = strchr((char*) lineBuffer, '(');
 
                         if (start) {
@@ -595,7 +616,8 @@ ConfigFileParser_createModelFromConfigFile(FileHandle fileHandle)
                             DataSetEntry_create(currentDataSet, nameString, indexVal, componentVal);
                         }
                     }
-                    else if (StringUtils_startsWith((char*) lineBuffer, "PA")) {
+                    else if (StringUtils_startsWith((char*) lineBuffer, "PA"))
+                    {
                         uint32_t vlanPrio;
                         uint32_t vlanId;
                         uint32_t appId;
@@ -628,14 +650,16 @@ ConfigFileParser_createModelFromConfigFile(FileHandle fileHandle)
                         goto exit_error;
                 }
             }
-            else {
-                if (StringUtils_startsWith((char*) lineBuffer, "MODEL{")) {
-
+            else
+            {
+                if (StringUtils_startsWith((char*) lineBuffer, "MODEL{"))
+                {
                     model = IedModel_create("");
                     stateInModel = true;
                     indendation = 1;
                 }
-                else if (StringUtils_startsWith((char*) lineBuffer, "MODEL(")) {
+                else if (StringUtils_startsWith((char*) lineBuffer, "MODEL("))
+                {
                     if (sscanf((char*)lineBuffer, "MODEL(%129s)", nameString) != 1)
                         goto exit_error;
 
