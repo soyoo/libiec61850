@@ -808,12 +808,14 @@ ModelNode_getChildWithIdx(ModelNode* self, int idx)
 {
     ModelNode* foundElement = NULL;
 
-    if (self->modelType == DataObjectModelType || self->modelType == DataAttributeModelType) {
+    if (self->modelType == DataObjectModelType || self->modelType == DataAttributeModelType)
+    {
         ModelNode* nextNode = self->firstChild;
 
         int currentIdx = 0;
 
-        while (nextNode) {
+        while (nextNode)
+        {
             if (currentIdx == idx) {
                 foundElement = nextNode;
                 break;
@@ -845,14 +847,17 @@ ModelNode_getChildWithFc(ModelNode* self, const char* name, FunctionalConstraint
 
    ModelNode* matchingNode = NULL;
 
-   while (nextNode != NULL) {
+   while (nextNode != NULL)
+   {
        int nodeNameLen = strlen(nextNode->name);
 
-       if (nodeNameLen == nameElementLength) {
-           if (memcmp(nextNode->name, name, nodeNameLen) == 0) {
-
+       if (nodeNameLen == nameElementLength)
+       {
+           if (memcmp(nextNode->name, name, nodeNameLen) == 0)
+           {
                if (separator == NULL) {
-                   if (nextNode->modelType == DataAttributeModelType) {
+                   if (nextNode->modelType == DataAttributeModelType)
+                   {
                        DataAttribute* da = (DataAttribute*) nextNode;
 
                        if (da->fc == fc) {
@@ -861,9 +866,10 @@ ModelNode_getChildWithFc(ModelNode* self, const char* name, FunctionalConstraint
                        }
                    }
                }
-               else {
-
-                   if (nextNode->modelType == DataAttributeModelType) {
+               else
+               {
+                   if (nextNode->modelType == DataAttributeModelType)
+                   {
                         DataAttribute* da = (DataAttribute*) nextNode;
 
                         if (da->fc == fc) {

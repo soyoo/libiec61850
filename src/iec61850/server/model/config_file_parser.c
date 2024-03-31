@@ -1,7 +1,7 @@
 /*
  *  config_file_parser.c
  *
- *  Copyright 2014-2023 Michael Zillgith
+ *  Copyright 2014-2024 Michael Zillgith
  *
  *  This file is part of libIEC61850.
  *
@@ -304,7 +304,6 @@ ConfigFileParser_createModelFromConfigFile(FileHandle fileHandle)
                         currentModelNode = currentModelNode->parent;
                     }
                 }
-
                 else if (indendation == 1)
                 {
                     if (StringUtils_startsWith((char*) lineBuffer, "LD"))
@@ -514,8 +513,15 @@ ConfigFileParser_createModelFromConfigFile(FileHandle fileHandle)
                         if (matchedItems != 2) goto exit_error;
 
                         currentModelNode = (ModelNode*) DataObject_create(nameString, currentModelNode, arrayElements);
+
+                        if (arrayElements > 0)
+                        {
+                            inArray = true;
+                            currentArrayNode = currentModelNode;
+                        }
                     }
-                    else if (StringUtils_startsWith((char*) lineBuffer, "[")) {
+                    else if (StringUtils_startsWith((char*) lineBuffer, "["))
+                    {
                         if (inArray == false) {
                             goto exit_error;
                         } 
@@ -526,27 +532,55 @@ ConfigFileParser_createModelFromConfigFile(FileHandle fileHandle)
                             goto exit_error;
                         }
 
-                        if (StringUtils_endsWith((char*)lineBuffer, ";"))
-                        {
-                            /* array of basic data attribute */
-                            ModelNode* arrayElementNode = ModelNode_getChildWithIdx(currentArrayNode, arrayIndex);
+                        if (arrayIndex < 0) {
+                            goto exit_error;
+                        }
 
-                            if (arrayElementNode) {
-                                setValue((char*)lineBuffer, (DataAttribute*)arrayElementNode);
+                        if (currentArrayNode->modelType == DataAttributeModelType)
+                        {
+                            if (StringUtils_endsWith((char*)lineBuffer, ";"))
+                            {
+                                /* array of basic data attribute */
+                                ModelNode* arrayElementNode = ModelNode_getChildWithIdx(currentArrayNode, arrayIndex);
+
+                                if (arrayElementNode) {
+                                    setValue((char*)lineBuffer, (DataAttribute*)arrayElementNode);
+                                }
+                                else {
+                                    goto exit_error;
+                                }
                             }
-                            else {
-                                goto exit_error;
+                            else if (StringUtils_endsWith((char*)lineBuffer, "{"))
+                            {
+                                /* array of constructed data attribtute */
+                                currentModelNode = ModelNode_getChildWithIdx(currentArrayNode, arrayIndex);
+
+                                if (currentModelNode) {
+                                    inArrayElement = true;
+                                }
+                                else {
+                                    goto exit_error;
+                                }
                             }
                         }
-                        else if (StringUtils_endsWith((char*)lineBuffer, "{"))
+                        else if (currentArrayNode->modelType == DataObjectModelType)
                         {
-                            /* array of constructed data attribtute */
-                            currentModelNode = ModelNode_getChildWithIdx(currentArrayNode, arrayIndex);
+                            if (StringUtils_endsWith((char*)lineBuffer, "{"))
+                            {
+                                /* array of constructed data attribtute */
+                                currentModelNode = ModelNode_getChildWithIdx(currentArrayNode, arrayIndex);
 
-                            if (currentModelNode) {
-                                inArrayElement = true;
+                                if (currentModelNode) {
+                                    inArrayElement = true;
+                                }
+                                else {
+                                    goto exit_error;
+                                }
                             }
-                            else {
+                            else
+                            {
+                                if (DEBUG_IED_SERVER)
+                                    printf("Unexpected character at end of line: %s\n", lineBuffer);
                                 goto exit_error;
                             }
                         }
@@ -567,7 +601,8 @@ ConfigFileParser_createModelFromConfigFile(FileHandle fileHandle)
                         DataAttribute* dataAttribute = DataAttribute_create(nameString, currentModelNode,
                                 (DataAttributeType) attributeType, (FunctionalConstraint) functionalConstraint, triggerOptions, arrayElements, sAddr);
 
-                        if (arrayElements > 0) {
+                        if (arrayElements > 0)
+                        {
                             inArray = true;
                             currentArrayNode = (ModelNode*)dataAttribute;
                         }
@@ -576,7 +611,8 @@ ConfigFileParser_createModelFromConfigFile(FileHandle fileHandle)
 
                         int lineLength = (int) strlen((char*) lineBuffer);
 
-                        if (lineBuffer[lineLength - 1] == '{') {
+                        if (lineBuffer[lineLength - 1] == '{')
+                        {
                             indendation++;
                             currentModelNode = (ModelNode*) dataAttribute;
                         }
@@ -585,7 +621,8 @@ ConfigFileParser_createModelFromConfigFile(FileHandle fileHandle)
                     {
                         char* start = strchr((char*) lineBuffer, '(');
 
-                        if (start) {
+                        if (start)
+                        {
                             start++;
 
                             StringUtils_copyStringMax(nameString, 130, start);
@@ -598,7 +635,8 @@ ConfigFileParser_createModelFromConfigFile(FileHandle fileHandle)
                             /* check for index */
                             char* sep = strchr(nameString, ' ');
 
-                            if (sep) {
+                            if (sep)
+                            {
                                 char* indexStr = sep + 1;
                                 *sep = 0;
 
@@ -632,7 +670,6 @@ ConfigFileParser_createModelFromConfigFile(FileHandle fileHandle)
 
                         if (StringUtils_createBufferFromHexString(nameString, (uint8_t*) nameString2) != 6)
                             goto exit_error;
-
 
                         PhyComAddress* dstAddress =
                                 PhyComAddress_create((uint8_t) vlanPrio, (uint16_t) vlanId, (uint16_t) appId,

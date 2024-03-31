@@ -1,7 +1,7 @@
 /*
  *  dynamic_model.c
  *
- *  Copyright 2014-2022 Michael Zillgith
+ *  Copyright 2014-2024 Michael Zillgith
  *
  *  This file is part of libIEC61850.
  *
@@ -75,10 +75,12 @@ IedModel_addDataSet(IedModel* self, DataSet* dataSet)
 {
     if (self->dataSets == NULL)
         self->dataSets = dataSet;
-    else {
+    else
+    {
         DataSet* lastDataSet = self->dataSets;
 
-        while (lastDataSet != NULL) {
+        while (lastDataSet != NULL)
+        {
             if (lastDataSet->sibling == NULL) {
                 lastDataSet->sibling = dataSet;
                 break;
@@ -94,7 +96,8 @@ IedModel_addLogicalDevice(IedModel* self, LogicalDevice* lDevice)
 {
     if (self->firstChild == NULL)
         self->firstChild = lDevice;
-    else {
+    else
+    {
         LogicalDevice* sibling = self->firstChild;
 
         while (sibling->sibling != NULL)
@@ -109,7 +112,8 @@ IedModel_addLog(IedModel* self, Log* log)
 {
     if (self->logs == NULL)
         self->logs = log;
-    else {
+    else
+    {
         Log* lastLog = self->logs;
 
         while (lastLog->sibling != NULL)
@@ -124,7 +128,8 @@ IedModel_addLogControlBlock(IedModel* self, LogControlBlock* lcb)
 {
     if (self->lcbs == NULL)
         self->lcbs = lcb;
-    else {
+    else
+    {
         LogControlBlock* lastLcb = self->lcbs;
 
         while (lastLcb->sibling != NULL)
@@ -139,7 +144,8 @@ IedModel_addReportControlBlock(IedModel* self, ReportControlBlock* rcb)
 {
     if (self->rcbs == NULL)
         self->rcbs = rcb;
-    else {
+    else
+    {
         ReportControlBlock* lastRcb = self->rcbs;
 
         while (lastRcb->sibling != NULL)
@@ -155,7 +161,8 @@ IedModel_addSettingGroupControlBlock(IedModel* self, SettingGroupControlBlock* s
 {
     if (self->sgcbs == NULL)
         self->sgcbs = sgcb;
-    else {
+    else
+    {
         SettingGroupControlBlock* lastSgcb = self->sgcbs;
 
         while (lastSgcb->sibling != NULL)
@@ -171,7 +178,8 @@ IedModel_addGSEControlBlock(IedModel* self, GSEControlBlock* gcb)
 {
     if (self->gseCBs == NULL)
         self->gseCBs = gcb;
-    else {
+    else
+    {
         GSEControlBlock* lastGcb = self->gseCBs;
 
         while (lastGcb->sibling)
@@ -187,7 +195,8 @@ IedModel_addSMVControlBlock(IedModel* self, SVControlBlock* smvcb)
     if (self->svCBs == NULL) {
         self->svCBs = smvcb;
     }
-    else {
+    else
+    {
         SVControlBlock* lastSvCB = self->svCBs;
 
         while (lastSvCB->sibling)
@@ -202,7 +211,8 @@ LogicalDevice_createEx(const char* inst, IedModel* parent, const char* ldName)
 {
     LogicalDevice* self = (LogicalDevice*) GLOBAL_CALLOC(1, sizeof(LogicalDevice));
 
-    if (self) {
+    if (self)
+    {
         self->name = StringUtils_copyString(inst);
         self->modelType = LogicalDeviceModelType;
         self->parent = (ModelNode*) parent;
@@ -257,7 +267,8 @@ LogicalNode_create(const char* name, LogicalDevice* parent)
 {
     LogicalNode* self = (LogicalNode*) GLOBAL_MALLOC(sizeof(LogicalNode));
 
-    if (self) {
+    if (self)
+    {
         self->name = StringUtils_copyString(name);
         self->parent = (ModelNode*) parent;
         self->modelType = LogicalNodeModelType;
@@ -311,7 +322,8 @@ Log_create(const char* name, LogicalNode* parent)
 {
     Log* self = (Log*) GLOBAL_MALLOC(sizeof(Log));
 
-    if (self) {
+    if (self)
+    {
         self->name = StringUtils_copyString(name);
         self->parent = parent;
         self->sibling = NULL;
@@ -336,7 +348,8 @@ LogControlBlock_create(const char* name, LogicalNode* parent, const char* dataSe
 {
     LogControlBlock* self = (LogControlBlock*) GLOBAL_MALLOC(sizeof(LogControlBlock));
 
-    if (self) {
+    if (self)
+    {
         self->name = StringUtils_copyString(name);
         self->parent = parent;
         self->sibling = NULL;
@@ -388,7 +401,8 @@ ReportControlBlock_create(const char* name, LogicalNode* parent, const char* rpt
 {
     ReportControlBlock* self = (ReportControlBlock*) GLOBAL_MALLOC(sizeof(ReportControlBlock));
 
-    if (self) {
+    if (self)
+    {
         self->name = StringUtils_copyString(name);
         self->parent = parent;
 
@@ -469,7 +483,8 @@ SettingGroupControlBlock_create(LogicalNode* parent, uint8_t actSG, uint8_t numO
 
     SettingGroupControlBlock* self = (SettingGroupControlBlock*) GLOBAL_MALLOC(sizeof(SettingGroupControlBlock));
 
-    if (self) {
+    if (self)
+    {
         self->parent = parent;
         self->actSG = actSG;
         self->numOfSGs = numOfSGs;
@@ -497,7 +512,8 @@ GSEControlBlock_create(const char* name, LogicalNode* parent, const char* appId,
 {
     GSEControlBlock* self = (GSEControlBlock*) GLOBAL_MALLOC(sizeof(GSEControlBlock));
 
-    if (self) {
+    if (self)
+    {
         self->name = StringUtils_copyString(name);
         self->parent = parent;
 
@@ -541,7 +557,8 @@ SVControlBlock_create(const char* name, LogicalNode* parent, const char* svID, c
 {
     SVControlBlock* self = (SVControlBlock*) GLOBAL_MALLOC(sizeof(SVControlBlock));
 
-    if (self) {
+    if (self)
+    {
         self->name = StringUtils_copyString(name);
         self->parent = parent;
 
@@ -587,7 +604,8 @@ PhyComAddress_create(uint8_t vlanPriority, uint16_t vlanId, uint16_t appId, uint
 {
     PhyComAddress* self = (PhyComAddress*) GLOBAL_MALLOC(sizeof(PhyComAddress));
 
-    if (self) {
+    if (self)
+    {
         self->vlanPriority = vlanPriority;
         self->vlanId = vlanId;
         self->appId = appId;
@@ -630,7 +648,8 @@ DataObject_create(const char* name, ModelNode* parent, int arrayElements)
 {
     DataObject* self = (DataObject*) GLOBAL_MALLOC(sizeof(DataObject));
 
-    if (self) {
+    if (self)
+    {
         self->name = StringUtils_copyString(name);
         self->modelType = DataObjectModelType;
         self->firstChild = NULL;
@@ -640,21 +659,23 @@ DataObject_create(const char* name, ModelNode* parent, int arrayElements)
         self->elementCount = arrayElements;
         self->arrayIndex = -1;
 
-        if (arrayElements > 0) {
+        if (arrayElements > 0)
+        {
             int i;
 
-            for (i = 0; i < arrayElements; i++) {
+            for (i = 0; i < arrayElements; i++)
+            {
                 DataObject* arrayElement = (DataObject*) GLOBAL_MALLOC(sizeof(DataObject));
 
-                if (self) {
-                    self->name = NULL;
-                    self->modelType = DataObjectModelType;
-                    self->firstChild = NULL;
-                    self->parent = parent;
-                    self->sibling = NULL;
+                if (arrayElement) {
+                    arrayElement->name = NULL;
+                    arrayElement->modelType = DataObjectModelType;
+                    arrayElement->firstChild = NULL;
+                    arrayElement->parent = (ModelNode*) self;
+                    arrayElement->sibling = NULL;
 
-                    self->elementCount = 0;
-                    self->arrayIndex = i;
+                    arrayElement->elementCount = 0;
+                    arrayElement->arrayIndex = i;
 
                     DataObject_addChild(self, (ModelNode*) arrayElement);
                 }
@@ -703,7 +724,8 @@ DataAttribute_create(const char* name, ModelNode* parent, DataAttributeType type
 {
     DataAttribute* self = (DataAttribute*) GLOBAL_MALLOC(sizeof(DataAttribute));
 
-    if (self) {
+    if (self)
+    {
         self->name = StringUtils_copyString(name);
         self->elementCount = arrayElements;
         self->arrayIndex = -1;
@@ -717,13 +739,16 @@ DataAttribute_create(const char* name, ModelNode* parent, DataAttributeType type
         self->triggerOptions = triggerOptions;
         self->sAddr = sAddr;
 
-        if (arrayElements > 0) {
+        if (arrayElements > 0)
+        {
             int i;
 
-            for (i = 0; i < arrayElements; i++) {
+            for (i = 0; i < arrayElements; i++)
+            {
                 DataAttribute* arrayElement = (DataAttribute*) GLOBAL_MALLOC(sizeof(DataAttribute));
 
-                if (arrayElement) {
+                if (arrayElement)
+                {
                     arrayElement->name = NULL;
                     arrayElement->elementCount = 0;
                     arrayElement->arrayIndex = i;
@@ -785,7 +810,8 @@ DataSet_create(const char* name, LogicalNode* parent)
 {
     DataSet* self = (DataSet*) GLOBAL_MALLOC(sizeof(DataSet));
 
-    if (self) {
+    if (self)
+    {
         LogicalDevice* ld = (LogicalDevice*) parent->parent;
 
         self->name = StringUtils_createString(3, parent->name, "$", name);
@@ -831,11 +857,12 @@ DataSet_addEntry(DataSet* self, DataSetEntry* newEntry)
 
     if (self->fcdas == NULL)
         self->fcdas = newEntry;
-    else {
+    else
+    {
         DataSetEntry* lastEntry = self->fcdas;
 
-        while (lastEntry != NULL) {
-
+        while (lastEntry != NULL)
+        {
             if (lastEntry->sibling == NULL) {
                 lastEntry->sibling = newEntry;
                 break;
@@ -851,21 +878,24 @@ DataSetEntry_create(DataSet* dataSet, const char* variable, int index, const cha
 {
     DataSetEntry* self = (DataSetEntry*) GLOBAL_MALLOC(sizeof(DataSetEntry));
 
-    if (self) {
+    if (self)
+    {
         char variableName[130];
 
         StringUtils_copyStringMax(variableName, 130, variable);
 
         char* separator = strchr(variableName, '/');
 
-        if (separator != NULL) {
+        if (separator != NULL)
+        {
             *separator = 0;
 
             self->variableName = StringUtils_copyString(separator + 1);
             self->logicalDeviceName = StringUtils_copyString(variableName);
             self->isLDNameDynamicallyAllocated = true;
         }
-        else {
+        else
+        {
             self->variableName = StringUtils_copyString(variable);
             self->logicalDeviceName = dataSet->logicalDeviceName;
             self->isLDNameDynamicallyAllocated = false;
@@ -891,14 +921,15 @@ DataSetEntry_create(DataSet* dataSet, const char* variable, int index, const cha
 static void
 ModelNode_destroy(ModelNode* modelNode)
 {
-    if (modelNode) {
-
+    if (modelNode)
+    {
         if (modelNode->name)
             GLOBAL_FREEMEM(modelNode->name);
 
         ModelNode* currentChild = modelNode->firstChild;
 
-        while (currentChild != NULL) {
+        while (currentChild != NULL)
+        {
             ModelNode* nextChild = currentChild->sibling;
 
             ModelNode_destroy(currentChild);
@@ -906,7 +937,8 @@ ModelNode_destroy(ModelNode* modelNode)
             currentChild = nextChild;
         }
 
-        if (modelNode->modelType == DataAttributeModelType) {
+        if (modelNode->modelType == DataAttributeModelType)
+        {
             DataAttribute* dataAttribute = (DataAttribute*) modelNode;
 
             if (dataAttribute->mmsValue != NULL) {
@@ -929,8 +961,8 @@ IedModel_destroy(IedModel* model)
 
         LogicalDevice* ld = model->firstChild;
 
-        while (ld != NULL) {
-
+        while (ld != NULL)
+        {
             if (ld->name)
                 GLOBAL_FREEMEM(ld->name);
 
@@ -939,7 +971,8 @@ IedModel_destroy(IedModel* model)
 
             LogicalNode* ln = (LogicalNode*) ld->firstChild;
 
-            while (ln != NULL) {
+            while (ln != NULL)
+            {
                 GLOBAL_FREEMEM(ln->name);
 
                 /* delete all data objects */
@@ -959,7 +992,6 @@ IedModel_destroy(IedModel* model)
 
                 GLOBAL_FREEMEM(currentLn);
             }
-
 
             LogicalDevice* currentLd = ld;
             ld = (LogicalDevice*) ld->sibling;
@@ -1092,4 +1124,3 @@ IedModel_destroy(IedModel* model)
         GLOBAL_FREEMEM(model);
     }
 }
-
