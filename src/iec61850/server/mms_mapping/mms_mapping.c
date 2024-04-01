@@ -4244,10 +4244,12 @@ MmsMapping_triggerReportObservers(MmsMapping* self, MmsValue* value, int flag)
 
     bool modelLocked = self->isModelLocked;
 
-    while ((element = LinkedList_getNext(element)) != NULL) {
+    while ((element = LinkedList_getNext(element)) != NULL)
+    {
         ReportControl* rc = (ReportControl*) element->data;
 
-        if (rc->enabled || (rc->buffered && rc->dataSet != NULL)) {
+        if (rc->enabled || (rc->buffered && rc->dataSet != NULL))
+        {
             int index;
 
             switch (flag) {
