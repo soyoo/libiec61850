@@ -219,16 +219,16 @@ prepareGooseBuffer(GoosePublisher self, CommParameters* parameters, const char* 
     uint16_t appId;
 
     if (parameters) {
-        dstAddr = defaultDstAddr;
-        priority = CONFIG_GOOSE_DEFAULT_PRIORITY;
-        vlanId = CONFIG_GOOSE_DEFAULT_VLAN_ID;
-        appId = CONFIG_GOOSE_DEFAULT_APPID;
-    }
-    else {
         dstAddr = parameters->dstAddress;
         priority = parameters->vlanPriority;
         vlanId = parameters->vlanId;
         appId = parameters->appId;
+    }
+    else {
+        dstAddr = defaultDstAddr;
+        priority = CONFIG_GOOSE_DEFAULT_PRIORITY;
+        vlanId = CONFIG_GOOSE_DEFAULT_VLAN_ID;
+        appId = CONFIG_GOOSE_DEFAULT_APPID;
     }
 
     if (interfaceID)
