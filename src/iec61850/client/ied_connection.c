@@ -4013,7 +4013,7 @@ getDataSetHandlerInternal(uint32_t invokeId, void* parameter, MmsError err, MmsV
             if (dataSet == NULL)
             {
                 dataSet = ClientDataSet_create(dataSetReference);
-                ClientDataSet_setDataSetValues(dataSet, value);
+                ClientDataSet_setDataSetValues(dataSet, MmsValue_clone(value));
             }
             else
             {
@@ -4021,11 +4021,11 @@ getDataSetHandlerInternal(uint32_t invokeId, void* parameter, MmsError err, MmsV
                 MmsValue_update(dataSetValues, value);
             }
 
-            if (dataSetReference)
-                GLOBAL_FREEMEM(dataSetReference);
-
             MmsValue_delete(value);
         }
+
+        if (dataSetReference)
+            GLOBAL_FREEMEM(dataSetReference);
 
         handler(invokeId, call->callbackParameter, iedConnection_mapMmsErrorToIedError(err), dataSet);
 
