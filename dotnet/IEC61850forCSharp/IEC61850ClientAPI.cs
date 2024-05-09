@@ -559,6 +559,12 @@ namespace IEC61850
             [DllImport("iec61850", CallingConvention = CallingConvention.Cdecl)]
             static extern void IedConnection_installStateChangedHandler(IntPtr connection, InternalStateChangedHandler handler, IntPtr parameter);
 
+            [DllImport("iec61850", CallingConvention = CallingConvention.Cdecl)]
+            static extern void IedServer_ignoreReadAccess(IntPtr self, [MarshalAs(UnmanagedType.I1)] bool ignore);
+
+            [DllImport("iec61850", CallingConvention = CallingConvention.Cdecl)]
+            static extern void IedServer_ignoreClientRequests(IntPtr self, [MarshalAs(UnmanagedType.I1)] bool ignore);
+
             /*********************
              * Async functions
              *********************/
@@ -1949,6 +1955,24 @@ namespace IEC61850
             }
 
             /// <summary>
+            /// Ignore all MMS requests from clients (for testing purposes)
+            /// </summary>
+            /// <param name="ignore">when true all requests from clients will be ignored</param>
+            public void IgnoreClientRequests(bool ignore)
+            {
+                IedServer_ignoreClientRequests(connection, ignore);
+            }
+
+            /// <summary>
+            /// Temporarily ignore read requests (for testing purposes)
+            /// </summary>
+            /// <param name="ignore">true to ignore read requests, false to handle read requests.</param>
+            public void IgnoreReadAccess(bool ignore)
+            {
+                IedServer_ignoreReadAccess(connection, ignore);
+            }
+
+            /// <summary>
             /// Read the values of a data set (GetDataSetValues service).
             /// </summary>
             /// <description>This function will invoke a readDataSetValues service and return a new DataSet value containing the
@@ -2981,6 +3005,19 @@ namespace IEC61850
             IED_STATE_CLOSING = 3
         }
 
+        public static class IedClientErrorExtension
+        {
+            [DllImport("iec61850", CallingConvention = CallingConvention.Cdecl)]
+            static extern IntPtr IedClientError_toString(int err);
+
+            public static string ToString(this IedClientError err)
+            {
+                string stringVal = Marshal.PtrToStringAnsi(IedClientError_toString((int)err));
+
+                return stringVal;
+            }
+        }
+
         /// <summary>
         /// Error codes for client side functions
         /// </summary>
@@ -3065,6 +3102,9 @@ namespace IEC61850
 
             /** Received an invalid response message from the server */
             IED_ERROR_MALFORMED_MESSAGE = 34,
+
+            /** Service was not executed because required resource is still in use */
+            IED_ERROR_OBJECT_CONSTRAINT_CONFLICT = 35,
 
             /** Service not implemented */
             IED_ERROR_SERVICE_NOT_IMPLEMENTED = 98,
