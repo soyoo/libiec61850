@@ -1,7 +1,7 @@
 /*
  *  ied_connection_private.h
  *
- *  Copyright 2013-2022 Michael Zillgith
+ *  Copyright 2013-2024 Michael Zillgith
  *
  *  This file is part of libIEC61850.
  *
@@ -34,14 +34,16 @@
 
 typedef struct sIedConnectionOutstandingCall* IedConnectionOutstandingCall;
 
-struct sIedConnectionOutstandingCall {
+struct sIedConnectionOutstandingCall
+{
     bool used;
     uint32_t invokeId;
     void* callback;
     void* callbackParameter;
     void* specificParameter; /* function/service specific parameter */
 
-    union {
+    union
+    {
         void* pointer;
         struct {
             uint32_t originalInvokeId;
@@ -81,7 +83,8 @@ struct sIedConnection
     uint8_t timeQuality;
 };
 
-struct sClientReportControlBlock {
+struct sClientReportControlBlock
+{
     char* objectReference;
     bool isBuffered;
 

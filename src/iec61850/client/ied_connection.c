@@ -1,7 +1,7 @@
 /*
  *  ied_connection.c
  *
- *  Copyright 2013-2023 Michael Zillgith
+ *  Copyright 2013-2024 Michael Zillgith
  *
  *  This file is part of libIEC61850.
  *
@@ -47,7 +47,8 @@ struct sClientDataSet
     MmsValue* dataSetValues; /* MmsValue instance of type MMS_ARRAY */
 };
 
-struct sFileDirectoryEntry {
+struct sFileDirectoryEntry
+{
     char* fileName;
     uint32_t fileSize;
     uint64_t lastModified;
@@ -271,8 +272,10 @@ iedConnection_allocateOutstandingCall(IedConnection self)
 
     int i = 0;
 
-    for (i = 0; i < OUTSTANDING_CALLS; i++) {
-        if (self->outstandingCalls[i].used == false) {
+    for (i = 0; i < OUTSTANDING_CALLS; i++)
+    {
+        if (self->outstandingCalls[i].used == false)
+        {
             self->outstandingCalls[i].used = true;
             call = &(self->outstandingCalls[i]);
             break;
@@ -303,8 +306,10 @@ iedConnection_lookupOutstandingCall(IedConnection self, uint32_t invokeId)
 
     int i = 0;
 
-    for (i = 0; i < OUTSTANDING_CALLS; i++) {
-        if ((self->outstandingCalls[i].used) && (self->outstandingCalls[i].invokeId == invokeId)) {
+    for (i = 0; i < OUTSTANDING_CALLS; i++)
+    {
+        if ((self->outstandingCalls[i].used) && (self->outstandingCalls[i].invokeId == invokeId))
+        {
             call = &(self->outstandingCalls[i]);
             break;
         }
@@ -1121,7 +1126,8 @@ IedConnection_getServerDirectoryAsync(IedConnection self, IedClientError* error,
 
     MmsConnection_getDomainNamesAsync(self->connection, &(call->invokeId), &err, continueAfter, result, getNameListHandler, self);
 
-    if (err != MMS_ERROR_NONE) {
+    if (err != MMS_ERROR_NONE)
+    {
         *error = iedConnection_mapMmsErrorToIedError(err);
 
         iedConnection_releaseOutstandingCall(self, call);
@@ -1153,7 +1159,8 @@ IedConnection_getLogicalDeviceVariablesAsync(IedConnection self, IedClientError*
 
     MmsConnection_getDomainVariableNamesAsync(self->connection, &(call->invokeId), &err, ldName, continueAfter, result, getNameListHandler, self);
 
-    if (err != MMS_ERROR_NONE) {
+    if (err != MMS_ERROR_NONE)
+    {
         *error = iedConnection_mapMmsErrorToIedError(err);
 
         iedConnection_releaseOutstandingCall(self, call);
@@ -1185,7 +1192,8 @@ IedConnection_getLogicalDeviceDataSetsAsync(IedConnection self, IedClientError* 
 
     MmsConnection_getDomainVariableListNamesAsync(self->connection, &(call->invokeId), &err, ldName, continueAfter, result, getNameListHandler, self);
 
-    if (err != MMS_ERROR_NONE) {
+    if (err != MMS_ERROR_NONE)
+    {
         *error = iedConnection_mapMmsErrorToIedError(err);
 
         iedConnection_releaseOutstandingCall(self, call);
@@ -1206,15 +1214,16 @@ readObjectHandlerInternal(uint32_t invokeId, void* parameter, MmsError err, MmsV
 
     IedConnectionOutstandingCall call = iedConnection_lookupOutstandingCall(self, invokeId);
 
-    if (call) {
-
+    if (call)
+    {
         IedConnection_ReadObjectHandler handler =  (IedConnection_ReadObjectHandler) call->callback;
 
         handler(invokeId, call->callbackParameter, iedConnection_mapMmsErrorToIedError(err), value);
 
         iedConnection_releaseOutstandingCall(self, call);
     }
-    else {
+    else
+    {
         if (DEBUG_IED_CLIENT)
             printf("IED_CLIENT: internal error - no matching outstanding call!\n");
     }
@@ -1235,14 +1244,16 @@ IedConnection_readObjectAsync(IedConnection self, IedClientError* error, const c
     domainId = MmsMapping_getMmsDomainFromObjectReference(objRef, domainIdBuffer);
     itemId = MmsMapping_createMmsVariableNameFromObjectReference(objRef, fc, itemIdBuffer);
 
-    if ((domainId == NULL) || (itemId == NULL)) {
+    if ((domainId == NULL) || (itemId == NULL))
+    {
         *error = IED_ERROR_OBJECT_REFERENCE_INVALID;
         return 0;
     }
 
     IedConnectionOutstandingCall call = iedConnection_allocateOutstandingCall(self);
 
-    if (call == NULL) {
+    if (call == NULL)
+    {
         *error = IED_ERROR_OUTSTANDING_CALL_LIMIT_REACHED;
         return 0;
     }
@@ -1255,15 +1266,18 @@ IedConnection_readObjectAsync(IedConnection self, IedClientError* error, const c
     /* check if item ID contains an array "(..)" */
     char* brace = strchr(itemId, '(');
 
-    if (brace) {
+    if (brace)
+    {
         char* secondBrace = strchr(brace, ')');
 
-        if (secondBrace) {
+        if (secondBrace)
+        {
             char* endPtr;
 
             int index = (int) strtol(brace + 1, &endPtr, 10);
 
-            if (endPtr == secondBrace) {
+            if (endPtr == secondBrace)
+            {
                 char* component = NULL;
 
                 if (strlen(secondBrace + 1) > 1)
@@ -1282,8 +1296,8 @@ IedConnection_readObjectAsync(IedConnection self, IedClientError* error, const c
     else
         MmsConnection_readVariableAsync(self->connection, &(call->invokeId), &err, domainId, itemId, readObjectHandlerInternal, self);
 
-    if ((err != MMS_ERROR_NONE) || (*error != IED_ERROR_OK)) {
-
+    if ((err != MMS_ERROR_NONE) || (*error != IED_ERROR_OK))
+    {
         if (err != MMS_ERROR_NONE) {
             *error = iedConnection_mapMmsErrorToIedError(err);
         }
@@ -1295,7 +1309,6 @@ IedConnection_readObjectAsync(IedConnection self, IedClientError* error, const c
 
     return call->invokeId;
 }
-
 
 MmsValue*
 IedConnection_readObject(IedConnection self, IedClientError* error, const char* objectReference,
@@ -1311,7 +1324,8 @@ IedConnection_readObject(IedConnection self, IedClientError* error, const char* 
     domainId = MmsMapping_getMmsDomainFromObjectReference(objectReference, domainIdBuffer);
     itemId = MmsMapping_createMmsVariableNameFromObjectReference(objectReference, fc, itemIdBuffer);
 
-    if ((domainId == NULL) || (itemId == NULL)) {
+    if ((domainId == NULL) || (itemId == NULL))
+    {
         *error = IED_ERROR_OBJECT_REFERENCE_INVALID;
         return NULL;
     }
@@ -1321,15 +1335,18 @@ IedConnection_readObject(IedConnection self, IedClientError* error, const char* 
     /* check if item ID contains an array "(..)" */
     char* brace = strchr(itemId, '(');
 
-    if (brace) {
+    if (brace)
+    {
         char* secondBrace = strchr(brace, ')');
 
-        if (secondBrace) {
+        if (secondBrace)
+        {
             char* endPtr;
 
             int index = (int) strtol(brace + 1, &endPtr, 10);
 
-            if (endPtr == secondBrace) {
+            if (endPtr == secondBrace)
+            {
                 char* component = NULL;
 
                 if (strlen(secondBrace + 1) > 1)
@@ -1363,10 +1380,12 @@ IedConnection_readBooleanValue(IedConnection self, IedClientError* error, const 
 
     bool retVal = false;
 
-    if (value != NULL) {
+    if (value != NULL)
+    {
         if (MmsValue_getType(value) == MMS_BOOLEAN)
             retVal = MmsValue_getBoolean(value);
-        else {
+        else
+        {
             if (MmsValue_getType(value) == MMS_DATA_ACCESS_ERROR)
                 *error = iedConnection_mapDataAccessErrorToIedError(MmsValue_getDataAccessError(value));
             else
@@ -1386,10 +1405,12 @@ IedConnection_readFloatValue(IedConnection self, IedClientError* error, const ch
 
     float retVal = 0.f;
 
-    if (value != NULL) {
+    if (value != NULL)
+    {
         if (MmsValue_getType(value) == MMS_FLOAT)
             retVal = MmsValue_toFloat(value);
-        else {
+        else
+        {
             if (MmsValue_getType(value) == MMS_DATA_ACCESS_ERROR)
                 *error = iedConnection_mapDataAccessErrorToIedError(MmsValue_getDataAccessError(value));
             else
@@ -1409,10 +1430,12 @@ IedConnection_readStringValue(IedConnection self, IedClientError* error, const c
 
     char* retVal = NULL;
 
-    if (value != NULL) {
+    if (value != NULL)
+    {
         if ((MmsValue_getType(value) == MMS_VISIBLE_STRING) || (MmsValue_getType(value) == MMS_STRING))
             retVal = StringUtils_copyString(MmsValue_toString(value));
-        else {
+        else
+        {
             if (MmsValue_getType(value) == MMS_DATA_ACCESS_ERROR)
                 *error = iedConnection_mapDataAccessErrorToIedError(MmsValue_getDataAccessError(value));
             else
@@ -1432,10 +1455,12 @@ IedConnection_readInt32Value(IedConnection self, IedClientError* error, const ch
 
     int32_t retVal = 0;
 
-    if (value != NULL) {
+    if (value != NULL)
+    {
         if ((MmsValue_getType(value) == MMS_INTEGER) || (MmsValue_getType(value) == MMS_UNSIGNED))
             retVal = MmsValue_toInt32(value);
-        else {
+        else
+        {
             if (MmsValue_getType(value) == MMS_DATA_ACCESS_ERROR)
                 *error = iedConnection_mapDataAccessErrorToIedError(MmsValue_getDataAccessError(value));
             else
@@ -1455,10 +1480,12 @@ IedConnection_readUnsigned32Value(IedConnection self, IedClientError* error, con
 
     uint32_t retVal = 0;
 
-    if (value != NULL) {
+    if (value != NULL)
+    {
         if ((MmsValue_getType(value) == MMS_INTEGER) || (MmsValue_getType(value) == MMS_UNSIGNED))
             retVal = MmsValue_toUint32(value);
-        else {
+        else
+        {
             if (MmsValue_getType(value) == MMS_DATA_ACCESS_ERROR)
                 *error = iedConnection_mapDataAccessErrorToIedError(MmsValue_getDataAccessError(value));
             else
@@ -1478,10 +1505,12 @@ IedConnection_readInt64Value(IedConnection self, IedClientError* error, const ch
 
     int64_t retVal = 0;
 
-    if (value != NULL) {
+    if (value != NULL)
+    {
         if ((MmsValue_getType(value) == MMS_INTEGER) || (MmsValue_getType(value) == MMS_UNSIGNED))
             retVal = MmsValue_toInt64(value);
-        else {
+        else
+        {
             if (MmsValue_getType(value) == MMS_DATA_ACCESS_ERROR)
                 *error = iedConnection_mapDataAccessErrorToIedError(MmsValue_getDataAccessError(value));
             else
@@ -1502,15 +1531,17 @@ IedConnection_readTimestampValue(IedConnection self, IedClientError* error, cons
 
     Timestamp* retVal = timeStamp;
 
-    if (value != NULL) {
-        if (MmsValue_getType(value) == MMS_UTC_TIME) {
-
+    if (value != NULL)
+    {
+        if (MmsValue_getType(value) == MMS_UTC_TIME)
+        {
             if (retVal == NULL)
                 retVal = (Timestamp*) GLOBAL_MALLOC(sizeof(Timestamp));
 
             memcpy(retVal->val, value->value.utcTime, 8);
         }
-        else {
+        else
+        {
             if (MmsValue_getType(value) == MMS_DATA_ACCESS_ERROR)
                 *error = iedConnection_mapDataAccessErrorToIedError(MmsValue_getDataAccessError(value));
             else
@@ -1531,12 +1562,13 @@ IedConnection_readQualityValue(IedConnection self, IedClientError* error, const 
 
     Quality quality = QUALITY_VALIDITY_GOOD;
 
-    if (value != NULL) {
-
+    if (value != NULL)
+    {
         if ((MmsValue_getType(value) == MMS_BIT_STRING) && (MmsValue_getBitStringSize(value) == 13)) {
             quality = Quality_fromMmsValue(value);
         }
-        else {
+        else
+        {
             if (MmsValue_getType(value) == MMS_DATA_ACCESS_ERROR)
                 *error = iedConnection_mapDataAccessErrorToIedError(MmsValue_getDataAccessError(value));
             else
@@ -1563,7 +1595,8 @@ IedConnection_writeObject(IedConnection self, IedClientError* error, const char*
     domainId = MmsMapping_getMmsDomainFromObjectReference(objectReference, domainIdBuffer);
     itemId = MmsMapping_createMmsVariableNameFromObjectReference(objectReference, fc, itemIdBuffer);
 
-    if ((domainId == NULL) || (itemId == NULL)) {
+    if ((domainId == NULL) || (itemId == NULL))
+    {
         *error = IED_ERROR_OBJECT_REFERENCE_INVALID;
         return;
     }
@@ -1573,15 +1606,18 @@ IedConnection_writeObject(IedConnection self, IedClientError* error, const char*
     /* check if item ID contains an array "(..)" */
     char* brace = strchr(itemId, '(');
 
-    if (brace) {
+    if (brace)
+    {
         char* secondBrace = strchr(brace, ')');
 
-        if (secondBrace) {
+        if (secondBrace)
+        {
             char* endPtr;
 
             int index = (int) strtol(brace + 1, &endPtr, 10);
 
-            if (endPtr == secondBrace) {
+            if (endPtr == secondBrace)
+            {
                 char* component = NULL;
 
                 if (strlen(secondBrace + 1) > 1)
@@ -1599,7 +1635,8 @@ IedConnection_writeObject(IedConnection self, IedClientError* error, const char*
         else
             *error = IED_ERROR_USER_PROVIDED_INVALID_ARGUMENT;
     }
-    else {
+    else
+    {
         MmsConnection_writeVariable(self->connection, &mmsError, domainId, itemId, value);
 
         *error = iedConnection_mapMmsErrorToIedError(mmsError);
@@ -1613,8 +1650,8 @@ writeVariableHandler(uint32_t invokeId, void* parameter, MmsError err, MmsDataAc
 
     IedConnectionOutstandingCall call = iedConnection_lookupOutstandingCall(self, invokeId);
 
-    if (call) {
-
+    if (call)
+    {
         IedConnection_GenericServiceHandler handler =  (IedConnection_GenericServiceHandler) call->callback;
 
         IedClientError iedError = iedConnection_mapMmsErrorToIedError(err);
@@ -1626,7 +1663,8 @@ writeVariableHandler(uint32_t invokeId, void* parameter, MmsError err, MmsDataAc
 
         iedConnection_releaseOutstandingCall(self, call);
     }
-    else {
+    else
+    {
         if (DEBUG_IED_CLIENT)
             printf("IED_CLIENT: internal error - no matching outstanding call!\n");
     }
@@ -1647,14 +1685,16 @@ IedConnection_writeObjectAsync(IedConnection self, IedClientError* error, const 
     domainId = MmsMapping_getMmsDomainFromObjectReference(objectReference, domainIdBuffer);
     itemId = MmsMapping_createMmsVariableNameFromObjectReference(objectReference, fc, itemIdBuffer);
 
-    if ((domainId == NULL) || (itemId == NULL)) {
+    if ((domainId == NULL) || (itemId == NULL))
+    {
         *error = IED_ERROR_OBJECT_REFERENCE_INVALID;
         return 0;
     }
 
     IedConnectionOutstandingCall call = iedConnection_allocateOutstandingCall(self);
 
-    if (call == NULL) {
+    if (call == NULL)
+    {
         *error = IED_ERROR_OUTSTANDING_CALL_LIMIT_REACHED;
         return 0;
     }
@@ -1668,7 +1708,8 @@ IedConnection_writeObjectAsync(IedConnection self, IedClientError* error, const 
     /* check if item ID contains an array "(..)" */
     char* brace = strchr(itemId, '(');
 
-    if (brace) {
+    if (brace)
+    {
         char* secondBrace = strchr(brace, ')');
 
         if (secondBrace) {
@@ -1676,7 +1717,8 @@ IedConnection_writeObjectAsync(IedConnection self, IedClientError* error, const 
 
             int index = (int) strtol(brace + 1, &endPtr, 10);
 
-            if (endPtr == secondBrace) {
+            if (endPtr == secondBrace)
+            {
                 char* component = NULL;
 
                 if (strlen(secondBrace + 1) > 1)
@@ -1695,13 +1737,15 @@ IedConnection_writeObjectAsync(IedConnection self, IedClientError* error, const 
         else
             *error = IED_ERROR_USER_PROVIDED_INVALID_ARGUMENT;
     }
-    else {
+    else
+    {
         MmsConnection_writeVariableAsync(self->connection, &(call->invokeId), &err, domainId, itemId, value, writeVariableHandler, self);
 
         *error = iedConnection_mapMmsErrorToIedError(err);
     }
 
-    if (*error != IED_ERROR_OK) {
+    if (*error != IED_ERROR_OK)
+    {
         iedConnection_releaseOutstandingCall(self, call);
         return 0;
     }
@@ -1741,7 +1785,6 @@ IedConnection_writeInt32Value(IedConnection self, IedClientError* error, const c
 
     IedConnection_writeObject(self, error, objectReference, fc, &mmsValue);
 }
-
 
 void
 IedConnection_writeUnsigned32Value(IedConnection self, IedClientError* error, const char* objectReference,
@@ -1811,9 +1854,10 @@ IedConnection_getDeviceModelFromServer(IedConnection self, IedClientError* error
 
     LinkedList logicalDeviceNames = MmsConnection_getDomainNames(self->connection, &mmsError);
 
-    if (logicalDeviceNames != NULL) {
-
-        if (self->logicalDevices != NULL) {
+    if (logicalDeviceNames)
+    {
+        if (self->logicalDevices)
+        {
             LinkedList_destroyDeep(self->logicalDevices, (LinkedListValueDeleteFunction) ICLogicalDevice_destroy);
             self->logicalDevices = NULL;
         }
@@ -1822,20 +1866,23 @@ IedConnection_getDeviceModelFromServer(IedConnection self, IedClientError* error
 
         LinkedList logicalDevices = LinkedList_create();
 
-        while (logicalDevice != NULL) {
+        while (logicalDevice)
+        {
             char* name = (char*) logicalDevice->data;
 
             LinkedList variables = MmsConnection_getDomainVariableNames(self->connection,
                     &mmsError, name);
 
-            if (variables != NULL) {
+            if (variables)
+            {
                 ICLogicalDevice* icLogicalDevice = ICLogicalDevice_create(name);
 
                 ICLogicalDevice_setVariableList(icLogicalDevice, variables);
 
                 LinkedList_add(logicalDevices, icLogicalDevice);
             }
-            else {
+            else
+            {
                 if (error)
                     *error = iedConnection_mapMmsErrorToIedError(mmsError);
                 break;
@@ -1844,10 +1891,12 @@ IedConnection_getDeviceModelFromServer(IedConnection self, IedClientError* error
             logicalDevice = LinkedList_getNext(logicalDevice);
         }
 
-        if (mmsError != MMS_ERROR_NONE) {
+        if (mmsError != MMS_ERROR_NONE)
+        {
             LinkedList_destroyDeep(logicalDevices, (LinkedListValueDeleteFunction) ICLogicalDevice_destroy);
         }
-        else {
+        else
+        {
             self->logicalDevices = logicalDevices;
         }
 
@@ -1862,19 +1911,22 @@ IedConnection_getLogicalDeviceList(IedConnection self, IedClientError* error)
 {
     *error = IED_ERROR_OK;
 
-    if (self->logicalDevices == NULL) {
+    if (self->logicalDevices == NULL)
+    {
         IedConnection_getDeviceModelFromServer(self, error);
 
         if (*error != IED_ERROR_OK)
             return NULL;
     }
 
-    if (self->logicalDevices != NULL) {
+    if (self->logicalDevices)
+    {
         LinkedList logicalDevice = LinkedList_getNext(self->logicalDevices);
 
         LinkedList logicalDeviceList = LinkedList_create();
 
-        while (logicalDevice != NULL) {
+        while (logicalDevice)
+        {
             ICLogicalDevice* icLogicalDevice = (ICLogicalDevice*) logicalDevice->data;
 
             char* logicalDeviceName = StringUtils_copyString(icLogicalDevice->name);
@@ -1889,7 +1941,8 @@ IedConnection_getLogicalDeviceList(IedConnection self, IedClientError* error)
 
         return logicalDeviceList;
     }
-    else {
+    else
+    {
         if (error)
             *error = IED_ERROR_UNKNOWN;
 
@@ -1920,19 +1973,22 @@ IedConnection_getFileDirectory(IedConnection self, IedClientError* error, const 
 
     bool moreFollows = false;
 
-    do {
+    do
+    {
         moreFollows =
                 MmsConnection_getFileDirectory(self->connection, &mmsError, directoryName, continueAfter,
                         mmsFileDirectoryHandler, fileNames);
 
-        if (mmsError != MMS_ERROR_NONE) {
+        if (mmsError != MMS_ERROR_NONE)
+        {
             *error = iedConnection_mapMmsErrorToIedError(mmsError);
             LinkedList_destroyDeep(fileNames, (LinkedListValueDeleteFunction) FileDirectoryEntry_destroy);
 
             return NULL;
         }
 
-        if (moreFollows) {
+        if (moreFollows)
+        {
             FileDirectoryEntry lastDirectoryEntry = (FileDirectoryEntry)
                     LinkedList_getData(LinkedList_getLastElement(fileNames));
 
@@ -1957,7 +2013,8 @@ IedConnection_getFileDirectoryEx(IedConnection self, IedClientError* error, cons
     bool moreFollowsInternal =  MmsConnection_getFileDirectory(self->connection, &mmsError, directoryName, continueAfter,
                                     mmsFileDirectoryHandler, fileNames);
 
-    if (mmsError != MMS_ERROR_NONE) {
+    if (mmsError != MMS_ERROR_NONE)
+    {
         *error = iedConnection_mapMmsErrorToIedError(mmsError);
         LinkedList_destroyDeep(fileNames, (LinkedListValueDeleteFunction) FileDirectoryEntry_destroy);
 
@@ -1978,9 +2035,10 @@ fileDirectoryHandlerEx(uint32_t invokeId, void* parameter, MmsError err, char* f
 
     IedConnectionOutstandingCall call = iedConnection_lookupOutstandingCall(self, invokeId);
 
-    if (call) {
-
-        if (call->specificParameter2.getFileDirectory.cont) {
+    if (call)
+    {
+        if (call->specificParameter2.getFileDirectory.cont)
+        {
             IedConnection_FileDirectoryEntryHandler handler = (IedConnection_FileDirectoryEntryHandler) call->callback;
 
             call->specificParameter2.getFileDirectory.cont =
@@ -1990,7 +2048,8 @@ fileDirectoryHandlerEx(uint32_t invokeId, void* parameter, MmsError err, char* f
         if (filename == NULL)
             iedConnection_releaseOutstandingCall(self, call);
     }
-    else {
+    else
+    {
         if (DEBUG_IED_CLIENT)
             printf("IED_CLIENT: internal error - no matching outstanding call!\n");
     }
@@ -2004,7 +2063,8 @@ IedConnection_getFileDirectoryAsyncEx(IedConnection self, IedClientError* error,
 
     IedConnectionOutstandingCall call = iedConnection_allocateOutstandingCall(self);
 
-    if (call == NULL) {
+    if (call == NULL)
+    {
        *error = IED_ERROR_OUTSTANDING_CALL_LIMIT_REACHED;
        return 0;
     }
@@ -2018,7 +2078,8 @@ IedConnection_getFileDirectoryAsyncEx(IedConnection self, IedClientError* error,
 
     *error = iedConnection_mapMmsErrorToIedError(err);
 
-    if (err != MMS_ERROR_NONE) {
+    if (err != MMS_ERROR_NONE)
+    {
         iedConnection_releaseOutstandingCall(self, call);
         return 0;
     }
@@ -2058,7 +2119,8 @@ IedConnection_getFile(IedConnection self, IedClientError* error, const char* fil
     int32_t frsmId =
             MmsConnection_fileOpen(self->connection, &mmsError, fileName, 0, &fileSize, NULL);
 
-    if (mmsError != MMS_ERROR_NONE) {
+    if (mmsError != MMS_ERROR_NONE)
+    {
         *error = iedConnection_mapMmsErrorToIedError(mmsError);
         return 0;
     }
@@ -2069,17 +2131,20 @@ IedConnection_getFile(IedConnection self, IedClientError* error, const char* fil
     clientFileReadHandler.retVal = true;
     clientFileReadHandler.byteReceived = 0;
 
-    while (true) {
+    while (true)
+    {
         bool moreFollows =
                 MmsConnection_fileRead(self->connection, &mmsError, frsmId, mmsFileReadHandler,
                         &clientFileReadHandler);
 
-        if (mmsError != MMS_ERROR_NONE) {
+        if (mmsError != MMS_ERROR_NONE)
+        {
             *error = iedConnection_mapMmsErrorToIedError(mmsError);
             return 0;
         }
 
-        if (clientFileReadHandler.retVal == false) {
+        if (clientFileReadHandler.retVal == false)
+        {
             *error = IED_ERROR_UNKNOWN;
             break;
         }
@@ -2100,7 +2165,8 @@ mmsConnectionFileCloseHandler (uint32_t invokeId, void* parameter, MmsError mmsE
 {
     (void)success;
 
-    if (mmsError != MMS_ERROR_NONE) {
+    if (mmsError != MMS_ERROR_NONE)
+    {
         if (DEBUG_IED_CLIENT)
             printf("IED_CLIENT: failed to close file error: %i (mms-error: %i)\n", iedConnection_mapMmsErrorToIedError(mmsError), mmsError);
     }
@@ -2109,10 +2175,12 @@ mmsConnectionFileCloseHandler (uint32_t invokeId, void* parameter, MmsError mmsE
 
     IedConnectionOutstandingCall call = iedConnection_lookupOutstandingCall(self, invokeId);
 
-    if (call) {
+    if (call)
+    {
         iedConnection_releaseOutstandingCall(self, call);
     }
-    else {
+    else
+    {
         if (DEBUG_IED_CLIENT)
             printf("IED_CLIENT: internal error - no matching outstanding call!\n");
     }
@@ -2126,46 +2194,53 @@ mmsConnectionFileReadHandler (uint32_t invokeId, void* parameter, MmsError mmsEr
 
     IedConnectionOutstandingCall call = iedConnection_lookupOutstandingCall(self, invokeId);
 
-    if (call) {
-
+    if (call)
+    {
         IedConnection_GetFileAsyncHandler handler =  (IedConnection_GetFileAsyncHandler) call->callback;
 
-        if (mmsError != MMS_ERROR_NONE) {
+        if (mmsError != MMS_ERROR_NONE)
+        {
             IedClientError err = iedConnection_mapMmsErrorToIedError(mmsError);
 
             handler(call->specificParameter2.getFileInfo.originalInvokeId, call->callbackParameter, err, invokeId, NULL, 0, false);
 
-            if (mmsError != MMS_ERROR_SERVICE_TIMEOUT) {
+            if (mmsError != MMS_ERROR_SERVICE_TIMEOUT)
+            {
                 /* close file */
                 MmsConnection_fileCloseAsync(self->connection, &(call->invokeId), &mmsError, frsmId, mmsConnectionFileCloseHandler, self);
 
                 if (mmsError != MMS_ERROR_NONE)
                     iedConnection_releaseOutstandingCall(self, call);
             }
-            else {
+            else
+            {
                 if (DEBUG_IED_CLIENT)
                     printf("IED_CLIENT: getFile timeout -> stop download\n");
 
                 iedConnection_releaseOutstandingCall(self, call);
             }
         }
-        else {
+        else
+        {
             bool cont = handler(call->specificParameter2.getFileInfo.originalInvokeId, call->callbackParameter, IED_ERROR_OK, invokeId, buffer, byteReceived, moreFollows);
 
-            if ((moreFollows == false) || (cont == false)) {
+            if ((moreFollows == false) || (cont == false))
+            {
                 /* close file */
                 MmsConnection_fileCloseAsync(self->connection, &(call->invokeId), &mmsError, frsmId, mmsConnectionFileCloseHandler, self);
 
                 if (mmsError != MMS_ERROR_NONE)
                     iedConnection_releaseOutstandingCall(self, call);
             }
-            else {
+            else
+            {
                 /* send next read request */
 
                 MmsConnection_fileReadAsync(self->connection, &(call->invokeId), &mmsError, frsmId,
                         mmsConnectionFileReadHandler, self);
 
-                if (mmsError != MMS_ERROR_NONE) {
+                if (mmsError != MMS_ERROR_NONE)
+                {
                     IedClientError err = iedConnection_mapMmsErrorToIedError(mmsError);
 
                     handler(invokeId, call->callbackParameter, err, invokeId, NULL, 0, false);
@@ -2173,16 +2248,16 @@ mmsConnectionFileReadHandler (uint32_t invokeId, void* parameter, MmsError mmsEr
                     /* close file */
                     MmsConnection_fileCloseAsync(self->connection, &(call->invokeId), &mmsError, frsmId, mmsConnectionFileCloseHandler, self);
 
-                    if (mmsError != MMS_ERROR_NONE) {
+                    if (mmsError != MMS_ERROR_NONE)
+                    {
                         iedConnection_releaseOutstandingCall(self, call);
                     }
-
                 }
             }
         }
-
     }
-    else {
+    else
+    {
         if (DEBUG_IED_CLIENT)
             printf("IED_CLIENT: internal error - no matching outstanding call!\n");
     }
@@ -2198,24 +2273,27 @@ mmsConnectionFileOpenHandler (uint32_t invokeId, void* parameter, MmsError mmsEr
 
     IedConnectionOutstandingCall call = iedConnection_lookupOutstandingCall(self, invokeId);
 
-    if (call) {
-
+    if (call)
+    {
         IedConnection_GetFileAsyncHandler handler =  (IedConnection_GetFileAsyncHandler) call->callback;
 
         call->specificParameter2.getFileInfo.originalInvokeId = invokeId;
 
-        if (mmsError != MMS_ERROR_NONE) {
+        if (mmsError != MMS_ERROR_NONE)
+        {
             IedClientError err = iedConnection_mapMmsErrorToIedError(mmsError);
 
             handler(invokeId, call->callbackParameter, err, invokeId, NULL, 0, false);
 
             iedConnection_releaseOutstandingCall(self, call);
         }
-        else {
+        else
+        {
             call->specificParameter2.getFileInfo.originalInvokeId = invokeId;
             MmsConnection_fileReadAsync(self->connection, &(call->invokeId), &mmsError, frsmId, mmsConnectionFileReadHandler, self);
 
-            if (mmsError != MMS_ERROR_NONE) {
+            if (mmsError != MMS_ERROR_NONE)
+            {
                 IedClientError err = iedConnection_mapMmsErrorToIedError(mmsError);
 
                 handler(invokeId, call->callbackParameter, err, invokeId, NULL, 0, false);
@@ -2227,9 +2305,9 @@ mmsConnectionFileOpenHandler (uint32_t invokeId, void* parameter, MmsError mmsEr
                     iedConnection_releaseOutstandingCall(self, call);
             }
         }
-
     }
-    else {
+    else
+    {
         if (DEBUG_IED_CLIENT)
             printf("IED_CLIENT: internal error - no matching outstanding call!\n");
     }
@@ -2244,7 +2322,8 @@ IedConnection_getFileAsync(IedConnection self, IedClientError* error, const char
 
     IedConnectionOutstandingCall call = iedConnection_allocateOutstandingCall(self);
 
-    if (call == NULL) {
+    if (call == NULL)
+    {
        *error = IED_ERROR_OUTSTANDING_CALL_LIMIT_REACHED;
        return 0;
     }
@@ -2256,7 +2335,8 @@ IedConnection_getFileAsync(IedConnection self, IedClientError* error, const char
 
     *error = iedConnection_mapMmsErrorToIedError(err);
 
-    if (err != MMS_ERROR_NONE) {
+    if (err != MMS_ERROR_NONE)
+    {
         iedConnection_releaseOutstandingCall(self, call);
         return 0;
     }
@@ -2298,14 +2378,16 @@ deleteFileAndSetFileHandler (uint32_t invokeId, void* parameter, MmsError mmsErr
 
     IedConnectionOutstandingCall call = iedConnection_lookupOutstandingCall(self, invokeId);
 
-    if (call) {
+    if (call)
+    {
         IedConnection_GenericServiceHandler handler =  (IedConnection_GenericServiceHandler) call->callback;
 
         handler(invokeId, call->callbackParameter, iedConnection_mapMmsErrorToIedError(mmsError));
 
         iedConnection_releaseOutstandingCall(self, call);
     }
-    else {
+    else
+    {
         if (DEBUG_IED_CLIENT)
             printf("IED_CLIENT: internal error - no matching outstanding call!\n");
     }
@@ -2319,7 +2401,8 @@ IedConnection_setFileAsync(IedConnection self, IedClientError* error, const char
 
     IedConnectionOutstandingCall call = iedConnection_allocateOutstandingCall(self);
 
-    if (call == NULL) {
+    if (call == NULL)
+    {
        *error = IED_ERROR_OUTSTANDING_CALL_LIMIT_REACHED;
        return 0;
     }
@@ -2331,7 +2414,8 @@ IedConnection_setFileAsync(IedConnection self, IedClientError* error, const char
 
     *error = iedConnection_mapMmsErrorToIedError(err);
 
-    if (err != MMS_ERROR_NONE) {
+    if (err != MMS_ERROR_NONE)
+    {
         iedConnection_releaseOutstandingCall(self, call);
         return 0;
     }
@@ -2371,7 +2455,8 @@ IedConnection_deleteFileAsync(IedConnection self, IedClientError* error, const c
 
     *error = iedConnection_mapMmsErrorToIedError(err);
 
-    if (err != MMS_ERROR_NONE) {
+    if (err != MMS_ERROR_NONE)
+    {
         iedConnection_releaseOutstandingCall(self, call);
         return 0;
     }
@@ -2403,15 +2488,18 @@ IedConnection_getLogicalDeviceDirectory(IedConnection self, IedClientError* erro
 
     LinkedList logicalDevice = LinkedList_getNext(self->logicalDevices);
 
-    while (logicalDevice != NULL) {
+    while (logicalDevice)
+    {
         ICLogicalDevice* device = (ICLogicalDevice*) logicalDevice->data;
 
-        if (strcmp(device->name, logicalDeviceName) == 0) {
+        if (strcmp(device->name, logicalDeviceName) == 0)
+        {
             LinkedList logicalNodeNames = LinkedList_create();
 
             LinkedList variable = LinkedList_getNext(device->variables);
 
-            while (variable != NULL) {
+            while (variable)
+            {
                 char* variableName = (char*) variable->data;
 
                 if (strchr(variableName, '$') == NULL)
@@ -2436,7 +2524,8 @@ addToStringSet(LinkedList set, char* string)
 {
     LinkedList element = set;
 
-    while (LinkedList_getNext(element) != NULL) {
+    while (LinkedList_getNext(element) != NULL)
+    {
         if (strcmp((char*) LinkedList_getNext(element)->data, string) == 0)
             return false;
 
@@ -2452,21 +2541,25 @@ addVariablesWithFc(char* fc, char* lnName, LinkedList variables, LinkedList lnDi
 {
     LinkedList variable = LinkedList_getNext(variables);
 
-    while (variable != NULL) {
+    while (variable)
+    {
         char* variableName = (char*) variable->data;
 
         char* fcPos = strchr(variableName, '$');
 
-        if (fcPos != NULL) {
+        if (fcPos != NULL)
+        {
             if (memcmp(fcPos + 1, fc, 2) != 0)
                 goto next_element;
 
             int lnNameLen = (int)(fcPos - variableName);
 
-            if (strncmp(variableName, lnName, lnNameLen) == 0) {
+            if (strncmp(variableName, lnName, lnNameLen) == 0)
+            {
                 char* fcEndPos = strchr(fcPos + 1, '$');
 
-                if (fcEndPos != NULL) {
+                if (fcEndPos != NULL)
+                {
                     char* nameEndPos = strchr(fcEndPos + 1, '$');
 
                     if (nameEndPos == NULL)
@@ -2491,7 +2584,8 @@ getLogicalNodeDirectoryLogs(IedConnection self, IedClientError* error, const cha
 
     LinkedList journals = MmsConnection_getDomainJournals(mmsCon, &mmsError, logicalDeviceName);
 
-    if (mmsError != MMS_ERROR_NONE) {
+    if (mmsError != MMS_ERROR_NONE)
+    {
         *error = iedConnection_mapMmsErrorToIedError(mmsError);
         return NULL;
     }
@@ -2500,17 +2594,19 @@ getLogicalNodeDirectoryLogs(IedConnection self, IedClientError* error, const cha
 
     LinkedList journal = LinkedList_getNext(journals);
 
-    while (journal != NULL) {
-
+    while (journal)
+    {
         char* journalName = (char*) LinkedList_getData(journal);
 
         char* logName = strchr(journalName, '$');
 
-        if (logName != NULL) {
+        if (logName)
+        {
             logName[0] = 0;
             logName += 1;
 
-            if (strcmp(journalName, logicalNodeName) == 0) {
+            if (strcmp(journalName, logicalNodeName) == 0)
+            {
                 char* log = StringUtils_copyString(logName);
                 LinkedList_add(logs, (void*) log);
             }
@@ -2534,7 +2630,8 @@ getLogicalNodeDirectoryDataSets(IedConnection self, IedClientError* error, const
 
     LinkedList dataSets = MmsConnection_getDomainVariableListNames(mmsCon, &mmsError, logicalDeviceName);
 
-    if (mmsError != MMS_ERROR_NONE) {
+    if (mmsError != MMS_ERROR_NONE)
+    {
         *error = iedConnection_mapMmsErrorToIedError(mmsError);
         return NULL;
     }
@@ -2543,16 +2640,19 @@ getLogicalNodeDirectoryDataSets(IedConnection self, IedClientError* error, const
 
     LinkedList dataSet = LinkedList_getNext(dataSets);
 
-    while (dataSet != NULL) {
+    while (dataSet)
+    {
         char* dataSetName = (char*) LinkedList_getData(dataSet);
 
         char* lnDataSetName = strchr(dataSetName, '$');
 
-        if (lnDataSetName != NULL) {
+        if (lnDataSetName)
+        {
             lnDataSetName[0] = 0;
             lnDataSetName += 1;
 
-            if (strcmp(dataSetName, logicalNodeName) == 0) {
+            if (strcmp(dataSetName, logicalNodeName) == 0)
+            {
                 char* lnDataSet = StringUtils_copyString(lnDataSetName);
                 LinkedList_add(lnDataSets, (void*) lnDataSet);
             }
@@ -2572,7 +2672,8 @@ IedConnection_getLogicalNodeDirectory(IedConnection self, IedClientError* error,
 {
     *error = IED_ERROR_OK;
 
-    if (strlen(logicalNodeReference) > 129) {
+    if (strlen(logicalNodeReference) > 129)
+    {
         *error = IED_ERROR_OBJECT_REFERENCE_INVALID;
         return NULL;
     }
@@ -2583,7 +2684,8 @@ IedConnection_getLogicalNodeDirectory(IedConnection self, IedClientError* error,
 
     char* ldSep = strchr(lnRefCopy, '/');
 
-    if (ldSep == NULL) {
+    if (ldSep == NULL)
+    {
         *error = IED_ERROR_USER_PROVIDED_INVALID_ARGUMENT;
         return NULL;
     }
@@ -2612,10 +2714,12 @@ IedConnection_getLogicalNodeDirectory(IedConnection self, IedClientError* error,
 
     ICLogicalDevice* ld = NULL;
 
-    while (device != NULL) {
+    while (device)
+    {
         ICLogicalDevice* ldCandidate = (ICLogicalDevice*) device->data;
 
-        if (strcmp(logicalDeviceName, ldCandidate->name) == 0) {
+        if (strcmp(logicalDeviceName, ldCandidate->name) == 0)
+        {
             ld = ldCandidate;
             break;
         }
@@ -2623,25 +2727,28 @@ IedConnection_getLogicalNodeDirectory(IedConnection self, IedClientError* error,
         device = LinkedList_getNext(device);
     }
 
-    if (ld == NULL) {
+    if (ld == NULL)
+    {
         *error = IED_ERROR_OBJECT_REFERENCE_INVALID;
         return NULL;
     }
 
     LinkedList lnDirectory = LinkedList_create();
 
-    switch (acsiClass) {
-
+    switch (acsiClass)
+    {
     case ACSI_CLASS_DATA_OBJECT:
         {
             LinkedList variable = LinkedList_getNext(ld->variables);
 
-            while (variable != NULL) {
+            while (variable)
+            {
                 char* variableName = (char*) variable->data;
 
                 char* fcPos = strchr(variableName, '$');
 
-                if (fcPos != NULL) {
+                if (fcPos)
+                {
                     if (memcmp(fcPos + 1, "RP", 2) == 0)
                         goto next_element;
 
@@ -2653,13 +2760,16 @@ IedConnection_getLogicalNodeDirectory(IedConnection self, IedClientError* error,
 
                     int lnNameLen = (int)(fcPos - variableName);
 
-                    if (strncmp(variableName, logicalNodeName, lnNameLen) == 0) {
+                    if (strncmp(variableName, logicalNodeName, lnNameLen) == 0)
+                    {
                         char* fcEndPos = strchr(fcPos + 1, '$');
 
-                        if (fcEndPos != NULL) {
+                        if (fcEndPos)
+                        {
                             char* nameEndPos = strchr(fcEndPos + 1, '$');
 
-                            if (nameEndPos == NULL) {
+                            if (nameEndPos == NULL)
+                            {
                                 char* dataObjectName = StringUtils_copyString(fcEndPos + 1);
 
                                 if (!addToStringSet(lnDirectory, dataObjectName))
@@ -2680,7 +2790,8 @@ IedConnection_getLogicalNodeDirectory(IedConnection self, IedClientError* error,
         {
             LinkedList variable = LinkedList_getNext(ld->variables);
 
-            while (variable != NULL) {
+            while (variable)
+            {
                 char* variableName = (char*) variable->data;
 
                 if (strcmp(variableName, "LLN0$SP$SGCB") == 0)
@@ -2723,7 +2834,8 @@ IedConnection_getLogicalNodeVariables(IedConnection self, IedClientError* error,
 {
     *error = IED_ERROR_OK;
 
-    if (strlen(logicalNodeReference) > 129) {
+    if (strlen(logicalNodeReference) > 129)
+    {
         *error = IED_ERROR_OBJECT_REFERENCE_INVALID;
         return NULL;
     }
@@ -2740,7 +2852,8 @@ IedConnection_getLogicalNodeVariables(IedConnection self, IedClientError* error,
 
     char* ldSep = strchr(lnRefCopy, '/');
 
-    if (ldSep == NULL) {
+    if (ldSep == NULL)
+    {
         *error = IED_ERROR_OBJECT_REFERENCE_INVALID;
         return NULL;
     }
@@ -2757,10 +2870,12 @@ IedConnection_getLogicalNodeVariables(IedConnection self, IedClientError* error,
 
     ICLogicalDevice* ld = NULL;
 
-    while (device != NULL) {
+    while (device)
+    {
         ICLogicalDevice* ldCandidate = (ICLogicalDevice*) device->data;
 
-        if (strcmp(logicalDeviceName, ldCandidate->name) == 0) {
+        if (strcmp(logicalDeviceName, ldCandidate->name) == 0)
+        {
             ld = ldCandidate;
             break;
         }
@@ -2768,7 +2883,8 @@ IedConnection_getLogicalNodeVariables(IedConnection self, IedClientError* error,
         device = LinkedList_getNext(device);
     }
 
-    if (ld == NULL) {
+    if (ld == NULL)
+    {
         *error = IED_ERROR_OBJECT_REFERENCE_INVALID;
         return NULL;
     }
@@ -2780,15 +2896,18 @@ IedConnection_getLogicalNodeVariables(IedConnection self, IedClientError* error,
 
     LinkedList lnDirectory = LinkedList_create();
 
-    while (variable != NULL) {
+    while (variable)
+    {
         char* variableName = (char*) variable->data;
 
         char* fcPos = strchr(variableName, '$');
 
-        if (fcPos != NULL) {
+        if (fcPos)
+        {
             int lnNameLen = (int)(fcPos - variableName);
 
-            if (strncmp(variableName, logicalNodeName, lnNameLen) == 0) {
+            if (strncmp(variableName, logicalNodeName, lnNameLen) == 0)
+            {
                 LinkedList_add(lnDirectory, StringUtils_copyString(fcPos + 1));
             }
         }
@@ -2806,7 +2925,8 @@ getDataDirectory(IedConnection self, IedClientError* error,
 {
     *error = IED_ERROR_OK;
 
-    if (strlen(dataReference) > 129) {
+    if (strlen(dataReference) > 129)
+    {
         *error = IED_ERROR_OBJECT_REFERENCE_INVALID;
         return NULL;
     }
@@ -2831,7 +2951,8 @@ getDataDirectory(IedConnection self, IedClientError* error,
 
     char* logicalNodeNameEnd = strchr(logicalNodeName, '.');
 
-    if (logicalNodeNameEnd == NULL) {
+    if (logicalNodeNameEnd == NULL)
+    {
         *error = IED_ERROR_OBJECT_REFERENCE_INVALID;
         return NULL;
     }
@@ -2842,7 +2963,8 @@ getDataDirectory(IedConnection self, IedClientError* error,
 
     int dataNamePartLen = (int)strlen(dataNamePart);
 
-    if (dataNamePartLen < 1) {
+    if (dataNamePartLen < 1)
+    {
         *error = IED_ERROR_OBJECT_REFERENCE_INVALID;
         return NULL;
     }
@@ -2855,10 +2977,12 @@ getDataDirectory(IedConnection self, IedClientError* error,
 
     ICLogicalDevice* ld = NULL;
 
-    while (device != NULL) {
+    while (device)
+    {
         ICLogicalDevice* ldCandidate = (ICLogicalDevice*) device->data;
 
-        if (strcmp(logicalDeviceName, ldCandidate->name) == 0) {
+        if (strcmp(logicalDeviceName, ldCandidate->name) == 0)
+        {
             ld = ldCandidate;
             break;
         }
@@ -2866,7 +2990,8 @@ getDataDirectory(IedConnection self, IedClientError* error,
         device = LinkedList_getNext(device);
     }
 
-    if (ld == NULL) {
+    if (ld == NULL)
+    {
         *error = IED_ERROR_OBJECT_REFERENCE_INVALID;
         return NULL;
     }
@@ -2875,18 +3000,20 @@ getDataDirectory(IedConnection self, IedClientError* error,
 
     LinkedList dataDirectory = LinkedList_create();
 
-    while (variable != NULL) {
+    while (variable)
+    {
         char* variableName = (char*) variable->data;
 
         char* fcPos = strchr(variableName, '$');
 
-        if (fcPos != NULL) {
+        if (fcPos)
+        {
             int lnNameLen = (int)(fcPos - variableName);
 
-            if (logicalNodeNameLen == lnNameLen) {
-
-                if (memcmp(variableName, logicalNodeName, lnNameLen) == 0) {
-
+            if (logicalNodeNameLen == lnNameLen)
+            {
+                if (memcmp(variableName, logicalNodeName, lnNameLen) == 0)
+                {
                     /* ok we are in the correct logical node */
 
                     /* skip FC */
@@ -2902,10 +3029,10 @@ getDataDirectory(IedConnection self, IedClientError* error,
                     if (remainingLen <= dataNamePartLen)
                         goto next_variable;
 
-                    if (remainingPart[dataNamePartLen] == '$') {
-
-                        if (memcmp(dataNamePart, remainingPart, dataNamePartLen) == 0) {
-
+                    if (remainingPart[dataNamePartLen] == '$')
+                    {
+                        if (memcmp(dataNamePart, remainingPart, dataNamePartLen) == 0)
+                        {
                             char* subElementName = remainingPart + dataNamePartLen + 1;
 
                             char* subElementNameSep = strchr(subElementName, '$');
@@ -2915,7 +3042,8 @@ getDataDirectory(IedConnection self, IedClientError* error,
 
                             char* elementName;
 
-                            if (withFc) {
+                            if (withFc)
+                            {
                                 int elementNameLen = (int)strlen(subElementName);
 
                                 elementName = (char*) GLOBAL_MALLOC(elementNameLen + 5);
@@ -2944,7 +3072,6 @@ getDataDirectory(IedConnection self, IedClientError* error,
 
     *error = IED_ERROR_OK;
     return dataDirectory;
-
 }
 
 LinkedList
@@ -2965,14 +3092,16 @@ getDataDirectoryByFc(IedConnection self, IedClientError* error,
 {
     *error = IED_ERROR_OK;
 
-    if (strlen(dataReference) > 129) {
+    if (strlen(dataReference) > 129)
+    {
         *error = IED_ERROR_OBJECT_REFERENCE_INVALID;
         return NULL;
     }
 
     char* fcString = FunctionalConstraint_toString(fc);
 
-    if (fcString == NULL) {
+    if (fcString == NULL)
+    {
         *error = IED_ERROR_OBJECT_REFERENCE_INVALID;
         return NULL;
     }
@@ -2997,7 +3126,8 @@ getDataDirectoryByFc(IedConnection self, IedClientError* error,
 
     char* logicalNodeNameEnd = strchr(logicalNodeName, '.');
 
-    if (logicalNodeNameEnd == NULL) {
+    if (logicalNodeNameEnd == NULL)
+    {
         *error = IED_ERROR_OBJECT_REFERENCE_INVALID;
         return NULL;
     }
@@ -3008,7 +3138,8 @@ getDataDirectoryByFc(IedConnection self, IedClientError* error,
 
     int dataNamePartLen = (int)strlen(dataNamePart);
 
-    if (dataNamePartLen < 1) {
+    if (dataNamePartLen < 1)
+    {
         *error = IED_ERROR_OBJECT_REFERENCE_INVALID;
         return NULL;
     }
@@ -3021,10 +3152,12 @@ getDataDirectoryByFc(IedConnection self, IedClientError* error,
 
     ICLogicalDevice* ld = NULL;
 
-    while (device != NULL) {
+    while (device)
+    {
         ICLogicalDevice* ldCandidate = (ICLogicalDevice*) device->data;
 
-        if (strcmp(logicalDeviceName, ldCandidate->name) == 0) {
+        if (strcmp(logicalDeviceName, ldCandidate->name) == 0)
+        {
             ld = ldCandidate;
             break;
         }
@@ -3032,7 +3165,8 @@ getDataDirectoryByFc(IedConnection self, IedClientError* error,
         device = LinkedList_getNext(device);
     }
 
-    if (ld == NULL) {
+    if (ld == NULL)
+    {
         *error = IED_ERROR_OBJECT_REFERENCE_INVALID;
         return NULL;
     }
@@ -3041,18 +3175,20 @@ getDataDirectoryByFc(IedConnection self, IedClientError* error,
 
     LinkedList dataDirectory = LinkedList_create();
 
-    while (variable != NULL) {
+    while (variable)
+    {
         char* variableName = (char*) variable->data;
 
         char* fcPos = strchr(variableName, '$');
 
-        if (fcPos != NULL) {
+        if (fcPos)
+        {
             int lnNameLen = (int)(fcPos - variableName);
 
-            if (logicalNodeNameLen == lnNameLen) {
-
-                if (memcmp(variableName, logicalNodeName, lnNameLen) == 0) {
-
+            if (logicalNodeNameLen == lnNameLen)
+            {
+                if (memcmp(variableName, logicalNodeName, lnNameLen) == 0)
+                {
                     /* ok we are in the correct logical node */
 
                     /* skip FC */
@@ -3071,10 +3207,10 @@ getDataDirectoryByFc(IedConnection self, IedClientError* error,
                     if (remainingLen <= dataNamePartLen)
                         goto next_variable;
 
-                    if (remainingPart[dataNamePartLen] == '$') {
-
-                        if (memcmp(dataNamePart, remainingPart, dataNamePartLen) == 0) {
-
+                    if (remainingPart[dataNamePartLen] == '$')
+                    {
+                        if (memcmp(dataNamePart, remainingPart, dataNamePartLen) == 0)
+                        {
                             char* subElementName = remainingPart + dataNamePartLen + 1;
 
                             char* subElementNameSep = strchr(subElementName, '$');
@@ -3103,7 +3239,6 @@ getDataDirectoryByFc(IedConnection self, IedClientError* error,
 
     *error = IED_ERROR_OK;
     return dataDirectory;
-
 }
 
 
@@ -3124,9 +3259,10 @@ IedConnection_createDataSet(IedConnection self, IedClientError* error, const cha
     const char* itemId;
     bool isAssociationSpecific = false;
 
-    if (dataSetReference[0] != '@') {
-
-        if ((dataSetReference[0] == '/') || (strchr(dataSetReference, '/') == NULL)) {
+    if (dataSetReference[0] != '@')
+    {
+        if ((dataSetReference[0] == '/') || (strchr(dataSetReference, '/') == NULL))
+        {
             domainId = NULL;
 
             if (dataSetReference[0] == '/')
@@ -3134,17 +3270,20 @@ IedConnection_createDataSet(IedConnection self, IedClientError* error, const cha
             else
                 itemId = dataSetReference;
         }
-        else {
+        else
+        {
             domainId = MmsMapping_getMmsDomainFromObjectReference(dataSetReference, domainIdBuffer);
 
-            if (domainId == NULL) {
+            if (domainId == NULL)
+            {
                 *error = IED_ERROR_OBJECT_REFERENCE_INVALID;
                 goto exit_function;
             }
 
             int domainIdLength = (int)strlen(domainId);
 
-            if ((strlen(dataSetReference) - domainIdLength - 1) > 32) {
+            if ((strlen(dataSetReference) - domainIdLength - 1) > 32)
+            {
                 *error = IED_ERROR_OBJECT_REFERENCE_INVALID;
                 goto exit_function;
             }
@@ -3154,7 +3293,8 @@ IedConnection_createDataSet(IedConnection self, IedClientError* error, const cha
             itemId = itemIdRef;
         }
     }
-    else {
+    else
+    {
         itemId = dataSetReference + 1;
         isAssociationSpecific = true;
     }
@@ -3165,12 +3305,13 @@ IedConnection_createDataSet(IedConnection self, IedClientError* error, const cha
 
     LinkedList dataSetElement = LinkedList_getNext(dataSetElements);
 
-    while (dataSetElement != NULL) {
-
+    while (dataSetElement)
+    {
         MmsVariableAccessSpecification* dataSetEntry =
                 MmsMapping_ObjectReferenceToVariableAccessSpec((char*) dataSetElement->data);
 
-        if (dataSetEntry == NULL) {
+        if (dataSetEntry == NULL)
+        {
             *error = IED_ERROR_OBJECT_REFERENCE_INVALID;
             goto cleanup_list;
         }
@@ -3208,8 +3349,10 @@ IedConnection_deleteDataSet(IedConnection self, IedClientError* error, const cha
 
     int dataSetReferenceLength = (int)strlen(dataSetReference);
 
-    if (dataSetReference[0] != '@') {
-        if ((dataSetReference[0] == '/') || (strchr(dataSetReference, '/') == NULL)) {
+    if (dataSetReference[0] != '@')
+    {
+        if ((dataSetReference[0] == '/') || (strchr(dataSetReference, '/') == NULL))
+        {
             domainId = NULL;
 
             if (dataSetReference[0] == '/')
@@ -3217,16 +3360,18 @@ IedConnection_deleteDataSet(IedConnection self, IedClientError* error, const cha
             else
                 StringUtils_copyStringMax(itemId, DATA_SET_MAX_NAME_LENGTH + 1, dataSetReference);
         }
-        else {
-
-            if (MmsMapping_getMmsDomainFromObjectReference(dataSetReference, domainId) == NULL) {
+        else
+        {
+            if (MmsMapping_getMmsDomainFromObjectReference(dataSetReference, domainId) == NULL)
+            {
                 *error = IED_ERROR_OBJECT_REFERENCE_INVALID;
                 goto exit_function;
             }
 
             const char* itemIdString = dataSetReference + strlen(domainId) + 1;
 
-            if (strlen(itemIdString) > DATA_SET_MAX_NAME_LENGTH) {
+            if (strlen(itemIdString) > DATA_SET_MAX_NAME_LENGTH)
+            {
                 *error = IED_ERROR_OBJECT_REFERENCE_INVALID;
                 goto exit_function;
             }
@@ -3236,8 +3381,10 @@ IedConnection_deleteDataSet(IedConnection self, IedClientError* error, const cha
             StringUtils_replace(itemId, '.', '$');
         }
     }
-    else {
-        if (dataSetReferenceLength > 33) {
+    else
+    {
+        if (dataSetReferenceLength > 33)
+        {
             *error = IED_ERROR_OBJECT_REFERENCE_INVALID;
             goto exit_function;
         }
@@ -3267,13 +3414,14 @@ deleteNamedVariableListHandler(uint32_t invokeId, void* parameter, MmsError mmsE
 
     IedConnectionOutstandingCall call = iedConnection_lookupOutstandingCall(self, invokeId);
 
-    if (call) {
-
+    if (call)
+    {
         IedConnection_GenericServiceHandler handler = (IedConnection_GenericServiceHandler)call->callback;
 
         IedClientError err = iedConnection_mapMmsErrorToIedError(mmsError);
 
-        if (err == IED_ERROR_OK) {
+        if (err == IED_ERROR_OK)
+        {
             if (success == false)
                 err = IED_ERROR_ACCESS_DENIED;
         }
@@ -3282,7 +3430,8 @@ deleteNamedVariableListHandler(uint32_t invokeId, void* parameter, MmsError mmsE
 
         iedConnection_releaseOutstandingCall(self, call);
     }
-    else {
+    else
+    {
         if (DEBUG_IED_CLIENT)
             printf("IED_CLIENT: internal error - no matching outstanding call!\n");
     }
@@ -3301,9 +3450,10 @@ IedConnection_deleteDataSetAsync(IedConnection self, IedClientError* error, cons
 
     int dataSetReferenceLength = (int)strlen(dataSetReference);
 
-    if (dataSetReference[0] != '@') {
-        if ((dataSetReference[0] == '/')
-                || (strchr(dataSetReference, '/') == NULL)) {
+    if (dataSetReference[0] != '@')
+    {
+        if ((dataSetReference[0] == '/') || (strchr(dataSetReference, '/') == NULL))
+        {
             domainId = NULL;
 
             if (dataSetReference[0] == '/')
@@ -3311,17 +3461,18 @@ IedConnection_deleteDataSetAsync(IedConnection self, IedClientError* error, cons
             else
                 StringUtils_copyStringMax(itemId, DATA_SET_MAX_NAME_LENGTH + 1, dataSetReference);
         }
-        else {
-
-            if (MmsMapping_getMmsDomainFromObjectReference(dataSetReference,
-                    domainId) == NULL) {
+        else
+        {
+            if (MmsMapping_getMmsDomainFromObjectReference(dataSetReference, domainId) == NULL)
+            {
                 *error = IED_ERROR_OBJECT_REFERENCE_INVALID;
                 return 0;
             }
 
             const char *itemIdString = dataSetReference + strlen(domainId) + 1;
 
-            if (strlen(itemIdString) > DATA_SET_MAX_NAME_LENGTH) {
+            if (strlen(itemIdString) > DATA_SET_MAX_NAME_LENGTH)
+            {
                 *error = IED_ERROR_OBJECT_REFERENCE_INVALID;
                 return 0;
             }
@@ -3331,8 +3482,10 @@ IedConnection_deleteDataSetAsync(IedConnection self, IedClientError* error, cons
             StringUtils_replace(itemId, '.', '$');
         }
     }
-    else {
-        if (dataSetReferenceLength > 33) {
+    else
+    {
+        if (dataSetReferenceLength > 33)
+        {
             *error = IED_ERROR_OBJECT_REFERENCE_INVALID;
             return 0;
         }
@@ -3344,7 +3497,8 @@ IedConnection_deleteDataSetAsync(IedConnection self, IedClientError* error, cons
 
     MmsError mmsError;
 
-    if ((domainId == NULL) || (itemId[0] == 0)) {
+    if ((domainId == NULL) || (itemId[0] == 0))
+    {
         *error = IED_ERROR_OBJECT_REFERENCE_INVALID;
         return 0;
     }
@@ -3360,14 +3514,17 @@ IedConnection_deleteDataSetAsync(IedConnection self, IedClientError* error, cons
     call->callbackParameter = parameter;
     call->invokeId = 0;
 
-    if (isAssociationSpecific) {
+    if (isAssociationSpecific)
+    {
         MmsConnection_deleteAssociationSpecificNamedVariableListAsync(self->connection, &(call->invokeId), &mmsError, itemId, deleteNamedVariableListHandler, self);
     }
-    else {
+    else
+    {
         MmsConnection_deleteNamedVariableListAsync(self->connection, &(call->invokeId), &mmsError, domainId, itemId, deleteNamedVariableListHandler, self);
     }
 
-    if (*error != IED_ERROR_OK) {
+    if (*error != IED_ERROR_OK)
+    {
         iedConnection_releaseOutstandingCall(self, call);
         return 0;
     }
@@ -3388,7 +3545,8 @@ createDataSetAsyncHandler(uint32_t invokeId, void* parameter, MmsError mmsError,
 
         IedClientError err = iedConnection_mapMmsErrorToIedError(mmsError);
 
-        if (err == IED_ERROR_OK) {
+        if (err == IED_ERROR_OK)
+        {
             if (success == false)
                 err = IED_ERROR_ACCESS_DENIED;
         }
@@ -3397,7 +3555,8 @@ createDataSetAsyncHandler(uint32_t invokeId, void* parameter, MmsError mmsError,
 
         iedConnection_releaseOutstandingCall(self, call);
     }
-    else {
+    else
+    {
         if (DEBUG_IED_CLIENT)
             printf("IED_CLIENT: internal error - no matching outstanding call!\n");
     }
@@ -3411,7 +3570,8 @@ IedConnection_createDataSetAsync(IedConnection self, IedClientError* error, cons
 
     IedConnectionOutstandingCall call = iedConnection_allocateOutstandingCall(self);
 
-    if (call == NULL) {
+    if (call == NULL)
+    {
         *error = IED_ERROR_OUTSTANDING_CALL_LIMIT_REACHED;
         goto exit_function;
     }
@@ -3427,9 +3587,10 @@ IedConnection_createDataSetAsync(IedConnection self, IedClientError* error, cons
     const char* itemId;
     bool isAssociationSpecific = false;
 
-    if (dataSetReference[0] != '@') {
-
-        if ((dataSetReference[0] == '/') || (strchr(dataSetReference, '/') == NULL)) {
+    if (dataSetReference[0] != '@')
+    {
+        if ((dataSetReference[0] == '/') || (strchr(dataSetReference, '/') == NULL))
+        {
             domainId = NULL;
 
             if (dataSetReference[0] == '/')
@@ -3437,17 +3598,20 @@ IedConnection_createDataSetAsync(IedConnection self, IedClientError* error, cons
             else
                 itemId = dataSetReference;
         }
-        else {
+        else
+        {
             domainId = MmsMapping_getMmsDomainFromObjectReference(dataSetReference, domainIdBuffer);
 
-            if (domainId == NULL) {
+            if (domainId == NULL)
+            {
                 *error = IED_ERROR_OBJECT_REFERENCE_INVALID;
                 goto exit_function;
             }
 
             int domainIdLength = (int)strlen(domainId);
 
-            if ((strlen(dataSetReference) - domainIdLength - 1) > 32) {
+            if ((strlen(dataSetReference) - domainIdLength - 1) > 32)
+            {
                 *error = IED_ERROR_OBJECT_REFERENCE_INVALID;
                 goto exit_function;
             }
@@ -3457,7 +3621,8 @@ IedConnection_createDataSetAsync(IedConnection self, IedClientError* error, cons
             itemId = itemIdRef;
         }
     }
-    else {
+    else
+    {
         itemId = dataSetReference + 1;
         isAssociationSpecific = true;
     }
@@ -3466,12 +3631,13 @@ IedConnection_createDataSetAsync(IedConnection self, IedClientError* error, cons
 
     LinkedList dataSetElement = LinkedList_getNext(dataSetElements);
 
-    while (dataSetElement != NULL) {
-
+    while (dataSetElement)
+    {
         MmsVariableAccessSpecification* dataSetEntry =
                 MmsMapping_ObjectReferenceToVariableAccessSpec((char*) dataSetElement->data);
 
-        if (dataSetEntry == NULL) {
+        if (dataSetEntry == NULL)
+        {
             *error = IED_ERROR_OBJECT_REFERENCE_INVALID;
             goto cleanup_list;
         }
@@ -3481,11 +3647,13 @@ IedConnection_createDataSetAsync(IedConnection self, IedClientError* error, cons
         dataSetElement = LinkedList_getNext(dataSetElement);
     }
 
-    if (isAssociationSpecific) {
+    if (isAssociationSpecific)
+    {
         MmsConnection_defineNamedVariableListAssociationSpecificAsync(self->connection, &(call->invokeId),
                 &mmsError, itemId, dataSetEntries, createDataSetAsyncHandler, self);
     }
-    else {
+    else
+    {
         MmsConnection_defineNamedVariableListAsync(self->connection, &(call->invokeId),
                 &mmsError, domainId, itemId, dataSetEntries, createDataSetAsyncHandler, self);
     }
@@ -3525,8 +3693,10 @@ IedConnection_getDataSetDirectory(IedConnection self, IedClientError* error, con
 
     bool isAssociationSpecific = false;
 
-    if (dataSetReference[0] != '@') {
-        if ((dataSetReference[0] == '/') || (strchr(dataSetReference, '/') == NULL)) {
+    if (dataSetReference[0] != '@')
+    {
+        if ((dataSetReference[0] == '/') || (strchr(dataSetReference, '/') == NULL))
+        {
             domainId = NULL;
 
             if (dataSetReference[0] == '/')
@@ -3534,17 +3704,20 @@ IedConnection_getDataSetDirectory(IedConnection self, IedClientError* error, con
             else
                 itemId = dataSetReference;
         }
-        else {
+        else
+        {
             domainId = MmsMapping_getMmsDomainFromObjectReference(dataSetReference, domainIdBuffer);
 
-            if (domainId == NULL) {
+            if (domainId == NULL)
+            {
                 *error = IED_ERROR_OBJECT_REFERENCE_INVALID;
                 goto exit_function;
             }
 
             const char* itemIdRef = dataSetReference + strlen(domainId) + 1;
 
-            if (strlen(itemIdRef) > DATA_SET_MAX_NAME_LENGTH) {
+            if (strlen(itemIdRef) > DATA_SET_MAX_NAME_LENGTH)
+            {
                 *error = IED_ERROR_OBJECT_REFERENCE_INVALID;
                 goto exit_function;
             }
@@ -3554,7 +3727,8 @@ IedConnection_getDataSetDirectory(IedConnection self, IedClientError* error, con
             itemId = itemIdRefInBuffer;
         }
     }
-    else {
+    else
+    {
         itemId = dataSetReference + 1;
         isAssociationSpecific = true;
     }
@@ -3570,13 +3744,14 @@ IedConnection_getDataSetDirectory(IedConnection self, IedClientError* error, con
         entries = MmsConnection_readNamedVariableListDirectory(self->connection,
                 &mmsError, domainId, itemId, &deletable);
 
-    if (mmsError == MMS_ERROR_NONE) {
-
+    if (mmsError == MMS_ERROR_NONE)
+    {
         LinkedList entry = LinkedList_getNext(entries);
 
         dataSetMembers = LinkedList_create();
 
-        while (entry) {
+        while (entry)
+        {
             MmsVariableAccessSpecification* varAccessSpec = (MmsVariableAccessSpecification*)LinkedList_getData(entry);
 
             char* objectReference = MmsMapping_varAccessSpecToObjectReference(varAccessSpec);
@@ -3607,17 +3782,20 @@ getDataSetDirectoryAsyncHandler(uint32_t invokeId, void* parameter, MmsError mms
 
     IedConnectionOutstandingCall call = iedConnection_lookupOutstandingCall(self, invokeId);
 
-    if (call) {
+    if (call)
+    {
         LinkedList dataSetMembers = NULL;
 
         if (mmsError != MMS_ERROR_NONE)
             err = iedConnection_mapMmsErrorToIedError(mmsError);
 
-        if (specs) {
+        if (specs)
+        {
             dataSetMembers = LinkedList_create();
             LinkedList specElem = LinkedList_getNext(specs);
 
-            while (specElem) {
+            while (specElem)
+            {
                 MmsVariableAccessSpecification* varAccessSpec = (MmsVariableAccessSpecification*)LinkedList_getData(specElem);
 
                 char* objectReference = MmsMapping_varAccessSpecToObjectReference(varAccessSpec);
@@ -3648,7 +3826,8 @@ IedConnection_getDataSetDirectoryAsync(IedConnection self, IedClientError* error
 
     IedConnectionOutstandingCall call = iedConnection_allocateOutstandingCall(self);
 
-    if (call == NULL) {
+    if (call == NULL)
+    {
         *error = IED_ERROR_OUTSTANDING_CALL_LIMIT_REACHED;
         return 0;
     }
@@ -3665,8 +3844,10 @@ IedConnection_getDataSetDirectoryAsync(IedConnection self, IedClientError* error
 
     bool isAssociationSpecific = false;
 
-    if (dataSetReference[0] != '@') {
-        if ((dataSetReference[0] == '/') || (strchr(dataSetReference, '/') == NULL)) {
+    if (dataSetReference[0] != '@')
+    {
+        if ((dataSetReference[0] == '/') || (strchr(dataSetReference, '/') == NULL))
+        {
             domainId = NULL;
 
             if (dataSetReference[0] == '/')
@@ -3674,17 +3855,20 @@ IedConnection_getDataSetDirectoryAsync(IedConnection self, IedClientError* error
             else
                 itemId = dataSetReference;
         }
-        else {
+        else
+        {
             domainId = MmsMapping_getMmsDomainFromObjectReference(dataSetReference, domainIdBuffer);
 
-            if (domainId == NULL) {
+            if (domainId == NULL)
+            {
                 *error = IED_ERROR_OBJECT_REFERENCE_INVALID;
                 goto exit_function;
             }
 
             const char* itemIdRef = dataSetReference + strlen(domainId) + 1;
 
-            if (strlen(itemIdRef) > DATA_SET_MAX_NAME_LENGTH) {
+            if (strlen(itemIdRef) > DATA_SET_MAX_NAME_LENGTH)
+            {
                 *error = IED_ERROR_OBJECT_REFERENCE_INVALID;
                 goto exit_function;
             }
@@ -3694,7 +3878,8 @@ IedConnection_getDataSetDirectoryAsync(IedConnection self, IedClientError* error
             itemId = itemIdRefInBuffer;
         }
     }
-    else {
+    else
+    {
         itemId = dataSetReference + 1;
         isAssociationSpecific = true;
     }
@@ -3709,12 +3894,14 @@ IedConnection_getDataSetDirectoryAsync(IedConnection self, IedClientError* error
 
 exit_function:
 
-    if (*error != IED_ERROR_OK) {
+    if (*error != IED_ERROR_OK)
+    {
         iedConnection_releaseOutstandingCall(self, call);
 
         return 0;
     }
-    else {
+    else
+    {
         return call->invokeId;
     }
 }
@@ -3731,9 +3918,10 @@ IedConnection_readDataSetValues(IedConnection self, IedClientError* error, const
 
     bool isAssociationSpecific = false;
 
-    if (dataSetReference[0] != '@') {
-
-        if ((dataSetReference[0] == '/') || (strchr(dataSetReference, '/') == NULL)) {
+    if (dataSetReference[0] != '@')
+    {
+        if ((dataSetReference[0] == '/') || (strchr(dataSetReference, '/') == NULL))
+        {
             domainId = NULL;
 
             if (dataSetReference[0] == '/')
@@ -3741,17 +3929,20 @@ IedConnection_readDataSetValues(IedConnection self, IedClientError* error, const
             else
                 itemId = dataSetReference;
         }
-        else {
+        else
+        {
             domainId = MmsMapping_getMmsDomainFromObjectReference(dataSetReference, domainIdBuffer);
 
-            if (domainId == NULL) {
+            if (domainId == NULL)
+            {
                 *error = IED_ERROR_OBJECT_REFERENCE_INVALID;
                 goto exit_function;
             }
 
             const char* itemIdRefOrig = dataSetReference + strlen(domainId) + 1;
 
-            if (strlen(itemIdRefOrig) > DATA_SET_MAX_NAME_LENGTH) {
+            if (strlen(itemIdRefOrig) > DATA_SET_MAX_NAME_LENGTH)
+            {
                 *error = IED_ERROR_OBJECT_REFERENCE_INVALID;
                 goto exit_function;
             }
@@ -3762,7 +3953,8 @@ IedConnection_readDataSetValues(IedConnection self, IedClientError* error, const
             itemId = itemIdRef;
         }
     }
-    else {
+    else
+    {
         itemId = dataSetReference + 1;
         isAssociationSpecific = true;
     }
@@ -3778,18 +3970,21 @@ IedConnection_readDataSetValues(IedConnection self, IedClientError* error, const
         dataSetVal = MmsConnection_readNamedVariableListValues(self->connection, &mmsError,
                     domainId, itemId, true);
 
-    if (dataSetVal == NULL) {
+    if (dataSetVal == NULL)
+    {
         *error = iedConnection_mapMmsErrorToIedError(mmsError);
         goto exit_function;
     }
     else
         *error = IED_ERROR_OK;
 
-    if (dataSet == NULL) {
+    if (dataSet == NULL)
+    {
         dataSet = ClientDataSet_create(dataSetReference);
         ClientDataSet_setDataSetValues(dataSet, dataSetVal);
     }
-    else {
+    else
+    {
         MmsValue* dataSetValues = ClientDataSet_getValues(dataSet);
         MmsValue_update(dataSetValues, dataSetVal);
         MmsValue_delete(dataSetVal);
@@ -3815,11 +4010,13 @@ getDataSetHandlerInternal(uint32_t invokeId, void* parameter, MmsError err, MmsV
 
         if (value)
         {
-            if (dataSet == NULL) {
+            if (dataSet == NULL)
+            {
                 dataSet = ClientDataSet_create(dataSetReference);
                 ClientDataSet_setDataSetValues(dataSet, value);
             }
-            else {
+            else
+            {
                 MmsValue* dataSetValues = ClientDataSet_getValues(dataSet);
                 MmsValue_update(dataSetValues, value);
             }
@@ -3834,7 +4031,8 @@ getDataSetHandlerInternal(uint32_t invokeId, void* parameter, MmsError err, MmsV
 
         iedConnection_releaseOutstandingCall(self, call);
     }
-    else {
+    else
+    {
         if (DEBUG_IED_CLIENT)
             printf("IED_CLIENT: internal error - no matching outstanding call!\n");
     }
@@ -3852,9 +4050,10 @@ IedConnection_readDataSetValuesAsync(IedConnection self, IedClientError* error, 
 
     bool isAssociationSpecific = false;
 
-    if (dataSetReference[0] != '@') {
-
-        if ((dataSetReference[0] == '/') || (strchr(dataSetReference, '/') == NULL)) {
+    if (dataSetReference[0] != '@')
+    {
+        if ((dataSetReference[0] == '/') || (strchr(dataSetReference, '/') == NULL))
+        {
             domainId = NULL;
 
             if (dataSetReference[0] == '/')
@@ -3862,17 +4061,20 @@ IedConnection_readDataSetValuesAsync(IedConnection self, IedClientError* error, 
             else
                 itemId = dataSetReference;
         }
-        else {
+        else
+        {
             domainId = MmsMapping_getMmsDomainFromObjectReference(dataSetReference, domainIdBuffer);
 
-            if (domainId == NULL) {
+            if (domainId == NULL)
+            {
                 *error = IED_ERROR_OBJECT_REFERENCE_INVALID;
                 return 0;
             }
 
             const char* itemIdRefOrig = dataSetReference + strlen(domainId) + 1;
 
-            if (strlen(itemIdRefOrig) > DATA_SET_MAX_NAME_LENGTH) {
+            if (strlen(itemIdRefOrig) > DATA_SET_MAX_NAME_LENGTH)
+            {
                 *error = IED_ERROR_OBJECT_REFERENCE_INVALID;
                 return 0;
             }
@@ -3883,14 +4085,16 @@ IedConnection_readDataSetValuesAsync(IedConnection self, IedClientError* error, 
             itemId = itemIdRef;
         }
     }
-    else {
+    else
+    {
         itemId = dataSetReference + 1;
         isAssociationSpecific = true;
     }
 
     IedConnectionOutstandingCall call = iedConnection_allocateOutstandingCall(self);
 
-    if (call == NULL) {
+    if (call == NULL)
+    {
         *error = IED_ERROR_OUTSTANDING_CALL_LIMIT_REACHED;
         return 0;
     }
@@ -3915,8 +4119,8 @@ IedConnection_readDataSetValuesAsync(IedConnection self, IedClientError* error, 
 
     *error = iedConnection_mapMmsErrorToIedError(err);
 
-    if (err != MMS_ERROR_NONE) {
-
+    if (err != MMS_ERROR_NONE)
+    {
         GLOBAL_FREEMEM(call->specificParameter2.pointer);
 
         iedConnection_releaseOutstandingCall(self, call);
@@ -3939,9 +4143,10 @@ IedConnection_writeDataSetValues(IedConnection self, IedClientError* error, cons
 
     bool isAssociationSpecific = false;
 
-    if (dataSetReference[0] != '@') {
-
-        if ((dataSetReference[0] == '/') || (strchr(dataSetReference, '/') == NULL)) {
+    if (dataSetReference[0] != '@')
+    {
+        if ((dataSetReference[0] == '/') || (strchr(dataSetReference, '/') == NULL))
+        {
             domainId = NULL;
 
             if (dataSetReference[0] == '/')
@@ -3949,17 +4154,20 @@ IedConnection_writeDataSetValues(IedConnection self, IedClientError* error, cons
             else
                 itemId = dataSetReference;
         }
-        else {
+        else
+        {
             domainId = MmsMapping_getMmsDomainFromObjectReference(dataSetReference, domainIdBuffer);
 
-            if (domainId == NULL) {
+            if (domainId == NULL)
+            {
                 *error = IED_ERROR_OBJECT_REFERENCE_INVALID;
                 goto exit_function;
             }
 
             const char* itemIdRefOrig = dataSetReference + strlen(domainId) + 1;
 
-            if (strlen(itemIdRefOrig) > DATA_SET_MAX_NAME_LENGTH) {
+            if (strlen(itemIdRefOrig) > DATA_SET_MAX_NAME_LENGTH)
+            {
                 *error = IED_ERROR_OBJECT_REFERENCE_INVALID;
                 goto exit_function;
             }
@@ -3970,7 +4178,8 @@ IedConnection_writeDataSetValues(IedConnection self, IedClientError* error, cons
             itemId = itemIdRef;
         }
     }
-    else {
+    else
+    {
         itemId = dataSetReference + 1;
         isAssociationSpecific = true;
     }
@@ -3992,15 +4201,16 @@ writeDataSetHandlerInternal(uint32_t invokeId, void* parameter, MmsError err, Li
 
     IedConnectionOutstandingCall call = iedConnection_lookupOutstandingCall(self, invokeId);
 
-    if (call) {
-
+    if (call)
+    {
         IedConnection_WriteDataSetHandler handler =  (IedConnection_WriteDataSetHandler) call->callback;
 
         handler(invokeId, call->callbackParameter, iedConnection_mapMmsErrorToIedError(err), accessResults);
 
         iedConnection_releaseOutstandingCall(self, call);
     }
-    else {
+    else
+    {
         if (DEBUG_IED_CLIENT)
             printf("IED_CLIENT: internal error - no matching outstanding call!\n");
     }
@@ -4018,9 +4228,10 @@ IedConnection_writeDataSetValuesAsync(IedConnection self, IedClientError* error,
 
     bool isAssociationSpecific = false;
 
-    if (dataSetReference[0] != '@') {
-
-        if ((dataSetReference[0] == '/') || (strchr(dataSetReference, '/') == NULL)) {
+    if (dataSetReference[0] != '@')
+    {
+        if ((dataSetReference[0] == '/') || (strchr(dataSetReference, '/') == NULL))
+        {
             domainId = NULL;
 
             if (dataSetReference[0] == '/')
@@ -4028,17 +4239,20 @@ IedConnection_writeDataSetValuesAsync(IedConnection self, IedClientError* error,
             else
                 itemId = dataSetReference;
         }
-        else {
+        else
+        {
             domainId = MmsMapping_getMmsDomainFromObjectReference(dataSetReference, domainIdBuffer);
 
-            if (domainId == NULL) {
+            if (domainId == NULL)
+            {
                 *error = IED_ERROR_OBJECT_REFERENCE_INVALID;
                 return 0;
             }
 
             const char* itemIdRefOrig = dataSetReference + strlen(domainId) + 1;
 
-            if (strlen(itemIdRefOrig) > DATA_SET_MAX_NAME_LENGTH) {
+            if (strlen(itemIdRefOrig) > DATA_SET_MAX_NAME_LENGTH)
+            {
                 *error = IED_ERROR_OBJECT_REFERENCE_INVALID;
                 return 0;
             }
@@ -4049,14 +4263,16 @@ IedConnection_writeDataSetValuesAsync(IedConnection self, IedClientError* error,
             itemId = itemIdRef;
         }
     }
-    else {
+    else
+    {
         itemId = dataSetReference + 1;
         isAssociationSpecific = true;
     }
 
     IedConnectionOutstandingCall call = iedConnection_allocateOutstandingCall(self);
 
-    if (call == NULL) {
+    if (call == NULL)
+    {
         *error = IED_ERROR_OUTSTANDING_CALL_LIMIT_REACHED;
         return 0;
     }
@@ -4070,7 +4286,8 @@ IedConnection_writeDataSetValuesAsync(IedConnection self, IedClientError* error,
 
     *error = iedConnection_mapMmsErrorToIedError(err);
 
-    if (err != MMS_ERROR_NONE) {
+    if (err != MMS_ERROR_NONE)
+    {
         iedConnection_releaseOutstandingCall(self, call);
 
         return 0;
@@ -4092,8 +4309,8 @@ IedConnection_queryLogByTime(IedConnection self, IedClientError* error, const ch
     char* logDomain = logRef;
     char* logName = strchr(logRef, '/');
 
-    if (logName != NULL) {
-
+    if (logName)
+    {
         logName[0] = 0;
         logName++;
 
@@ -4109,18 +4326,19 @@ IedConnection_queryLogByTime(IedConnection self, IedClientError* error, const ch
         MmsValue_delete(startTimeMms);
         MmsValue_delete(endTimeMms);
 
-        if (mmsError != MMS_ERROR_NONE) {
+        if (mmsError != MMS_ERROR_NONE)
+        {
             *error = iedConnection_mapMmsErrorToIedError(mmsError);
             return NULL;
         }
         else
             return journalEntries;
     }
-    else {
+    else
+    {
         *error = IED_ERROR_OBJECT_REFERENCE_INVALID;
         return NULL;
     }
-
 }
 
 static void
@@ -4130,15 +4348,16 @@ readJournalHandler(uint32_t invokeId, void* parameter, MmsError err, LinkedList 
 
     IedConnectionOutstandingCall call = iedConnection_lookupOutstandingCall(self, invokeId);
 
-    if (call) {
-
+    if (call)
+    {
         IedConnection_QueryLogHandler handler =  (IedConnection_QueryLogHandler) call->callback;
 
         handler(invokeId, call->callbackParameter, iedConnection_mapMmsErrorToIedError(err), journalEntries, moreFollows);
 
         iedConnection_releaseOutstandingCall(self, call);
     }
-    else {
+    else
+    {
         if (DEBUG_IED_CLIENT)
             printf("IED_CLIENT: internal error - no matching outstanding call!\n");
     }
@@ -4155,14 +4374,15 @@ IedConnection_queryLogByTimeAsync(IedConnection self, IedClientError* error, con
     char* logDomain = logRef;
     char* logName = strchr(logRef, '/');
 
-    if (logName != NULL) {
-
+    if (logName != NULL)
+    {
         logName[0] = 0;
         logName++;
 
         IedConnectionOutstandingCall call = iedConnection_allocateOutstandingCall(self);
 
-        if (call == NULL) {
+        if (call == NULL)
+        {
             *error = IED_ERROR_OUTSTANDING_CALL_LIMIT_REACHED;
             return 0;
         }
@@ -4186,18 +4406,19 @@ IedConnection_queryLogByTimeAsync(IedConnection self, IedClientError* error, con
 
         *error = iedConnection_mapMmsErrorToIedError(err);
 
-        if (err != MMS_ERROR_NONE) {
+        if (err != MMS_ERROR_NONE)
+        {
             iedConnection_releaseOutstandingCall(self, call);
             return 0;
         }
 
         return call->invokeId;
     }
-    else {
+    else
+    {
         *error = IED_ERROR_OBJECT_REFERENCE_INVALID;
         return 0;
     }
-
 }
 
 uint32_t
@@ -4211,14 +4432,15 @@ IedConnection_queryLogAfterAsync(IedConnection self, IedClientError* error, cons
     char* logDomain = logRef;
     char* logName = strchr(logRef, '/');
 
-    if (logName != NULL) {
-
+    if (logName)
+    {
         logName[0] = 0;
         logName++;
 
         IedConnectionOutstandingCall call = iedConnection_allocateOutstandingCall(self);
 
-        if (call == NULL) {
+        if (call == NULL)
+        {
             *error = IED_ERROR_OUTSTANDING_CALL_LIMIT_REACHED;
             return 0;
         }
@@ -4238,14 +4460,16 @@ IedConnection_queryLogAfterAsync(IedConnection self, IedClientError* error, cons
 
         *error = iedConnection_mapMmsErrorToIedError(err);
 
-        if (err != MMS_ERROR_NONE) {
+        if (err != MMS_ERROR_NONE)
+        {
             iedConnection_releaseOutstandingCall(self, call);
             return 0;
         }
 
         return call->invokeId;
     }
-    else {
+    else
+    {
         *error = IED_ERROR_OBJECT_REFERENCE_INVALID;
         return 0;
     }
@@ -4264,8 +4488,8 @@ IedConnection_queryLogAfter(IedConnection self, IedClientError* error, const cha
     char* logDomain = logRef;
     char* logName = strchr(logRef, '/');
 
-    if (logName != NULL) {
-
+    if (logName)
+    {
         logName[0] = 0;
         logName++;
 
@@ -4277,14 +4501,16 @@ IedConnection_queryLogAfter(IedConnection self, IedClientError* error, const cha
 
         MmsValue_delete(timeStampMms);
 
-        if (mmsError != MMS_ERROR_NONE) {
+        if (mmsError != MMS_ERROR_NONE)
+        {
             *error = iedConnection_mapMmsErrorToIedError(mmsError);
             return NULL;
         }
         else
             return journalEntries;
     }
-    else {
+    else
+    {
         *error = IED_ERROR_OBJECT_REFERENCE_INVALID;
         return NULL;
     }
@@ -4358,4 +4584,3 @@ FileDirectoryEntry_getLastModified(FileDirectoryEntry self)
 {
     return self->lastModified;
 }
-

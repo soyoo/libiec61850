@@ -3186,7 +3186,6 @@ mmsReadHandler(void* parameter, MmsDomain* domain, char* variableId, MmsServerCo
     }
 #endif
 
-
 #if (CONFIG_INCLUDE_GOOSE_SUPPORT == 1)
     /* GOOSE control blocks - GO */
     if (isGooseControlBlock(separator)) {
@@ -3213,8 +3212,8 @@ mmsReadHandler(void* parameter, MmsDomain* domain, char* variableId, MmsServerCo
 
 #if (CONFIG_IEC61850_REPORT_SERVICE == 1)
     /* Report control blocks - BR, RP */
-    if (isReportControlBlock(separator)) {
-
+    if (isReportControlBlock(separator))
+    {
         LinkedList reportControls = self->reportControls;
 
         LinkedList nextElement = reportControls;
@@ -3235,11 +3234,12 @@ mmsReadHandler(void* parameter, MmsDomain* domain, char* variableId, MmsServerCo
         else
             variableIdLen = strlen(variableId);
 
-        while ((nextElement = LinkedList_getNext(nextElement)) != NULL) {
+        while ((nextElement = LinkedList_getNext(nextElement)) != NULL)
+        {
             ReportControl* rc = (ReportControl*) nextElement->data;
 
-            if (rc->domain == domain) {
-
+            if (rc->domain == domain)
+            {
                 int parentLNNameStrLen = strlen(rc->parentLN->name);
 
                 if (parentLNNameStrLen != lnNameLength)
@@ -3248,7 +3248,8 @@ mmsReadHandler(void* parameter, MmsDomain* domain, char* variableId, MmsServerCo
                 if (memcmp(rc->parentLN->name, variableId, parentLNNameStrLen) != 0)
                     continue;
 
-                if (strlen(rc->name) == variableIdLen) {
+                if (strlen(rc->name) == variableIdLen)
+                {
                     if (strncmp(variableId, rc->name, variableIdLen) == 0)
                     {
                         char* elementName = MmsMapping_getNextNameElement(reportName);
@@ -3665,15 +3666,26 @@ mmsReadAccessHandler (void* parameter, MmsDomain* domain, char* variableId, MmsS
     if (DEBUG_IED_SERVER)
         printf("IED_SERVER: mmsReadAccessHandler: Requested %s\n", variableId);
 
+    if (self->iedServer->ignoreReadAccess)
+    {
+        if (DEBUG_IED_SERVER)
+            printf("IED_SERVER: mmsReadAccessHandler - ignore request\n");
+
+        return DATA_ACCESS_ERROR_NO_RESPONSE;
+    }
+
     char* separator = strchr(variableId, '$');
 
 #if (CONFIG_IEC61850_SETTING_GROUPS == 1)
 
-    if (separator) {
-        if (isFunctionalConstraint("SE", separator)) {
+    if (separator)
+    {
+        if (isFunctionalConstraint("SE", separator))
+        {
             SettingGroup* sg = getSettingGroupByMmsDomain(self, domain);
 
-            if (sg != NULL) {
+            if (sg != NULL)
+            {
                 if (sg->sgcb->editSG == 0)
                     return DATA_ACCESS_ERROR_TEMPORARILY_UNAVAILABLE;
             }
@@ -3695,7 +3707,8 @@ mmsReadAccessHandler (void* parameter, MmsDomain* domain, char* variableId, MmsS
         {
             FunctionalConstraint fc = IEC61850_FC_NONE;
 
-            if (separator != NULL) {
+            if (separator != NULL)
+            {
                 fc = FunctionalConstraint_fromString(separator + 1);
 
                 if (fc == IEC61850_FC_BR || fc == IEC61850_FC_US ||
@@ -3716,23 +3729,27 @@ mmsReadAccessHandler (void* parameter, MmsDomain* domain, char* variableId, MmsS
                     {
                         char* doStart = strchr(separator + 1, '$');
 
-                        if (doStart != NULL) {
-
+                        if (doStart != NULL)
+                        {
                             char* doEnd = strchr(doStart + 1, '$');
 
-                            if (doEnd == NULL) {
+                            if (doEnd == NULL)
+                            {
                                 StringUtils_copyStringToBuffer(doStart + 1, str);
                             }
-                            else {
+                            else
+                            {
                                 doEnd--;
 
                                 StringUtils_createStringFromBufferInBuffer(str, (uint8_t*) (doStart + 1), doEnd - doStart);
                             }
 
-                            if (fc == IEC61850_FC_SP) {
+                            if (fc == IEC61850_FC_SP)
+                            {
                                 if (!strcmp(str, "SGCB"))
                                 {
-                                    if (self->controlBlockAccessHandler) {
+                                    if (self->controlBlockAccessHandler)
+                                    {
                                         ClientConnection clientConnection = private_IedServer_getClientConnectionByHandle(self->iedServer,
                                                                                     connection);
 
@@ -3747,10 +3764,10 @@ mmsReadAccessHandler (void* parameter, MmsDomain* domain, char* variableId, MmsS
 
                             ModelNode* dobj = ModelNode_getChild((ModelNode*) ln, str);
 
-                            if (dobj != NULL) {
-
-                                if (dobj->modelType == DataObjectModelType) {
-
+                            if (dobj != NULL)
+                            {
+                                if (dobj->modelType == DataObjectModelType)
+                                {
                                     ClientConnection clientConnection = private_IedServer_getClientConnectionByHandle(self->iedServer,
                                                                                                                       connection);
 
@@ -3759,7 +3776,8 @@ mmsReadAccessHandler (void* parameter, MmsDomain* domain, char* variableId, MmsS
                                 }
                             }
                         }
-                        else {
+                        else
+                        {
                             ClientConnection clientConnection = private_IedServer_getClientConnectionByHandle(self->iedServer,
                                                                                                                       connection);
 
@@ -3769,10 +3787,12 @@ mmsReadAccessHandler (void* parameter, MmsDomain* domain, char* variableId, MmsS
                     }
                 }
             }
-            else {
+            else
+            {
                 LogicalNode* ln = LogicalDevice_getLogicalNode(ld, variableId);
 
-                if (ln != NULL) {
+                if (ln != NULL)
+                {
                     ClientConnection clientConnection = private_IedServer_getClientConnectionByHandle(self->iedServer, connection);
 
                     return self->readAccessHandler(ld, ln, NULL, fc, clientConnection,

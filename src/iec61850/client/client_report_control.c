@@ -528,39 +528,44 @@ readObjectHandlerInternal(uint32_t invokeId, void* parameter, MmsError err, MmsV
 
     IedConnectionOutstandingCall call = iedConnection_lookupOutstandingCall(self, invokeId);
 
-    if (call) {
-
+    if (call)
+    {
         IedConnection_GetRCBValuesHandler handler =  (IedConnection_GetRCBValuesHandler) call->callback;
         ClientReportControlBlock updateRcb = (ClientReportControlBlock) call->specificParameter;
         char* rcbReference = (char*) call->specificParameter2.pointer;
 
-
-        if (err != MMS_ERROR_NONE) {
+        if (err != MMS_ERROR_NONE)
+        {
             handler(invokeId, call->callbackParameter, iedConnection_mapMmsErrorToIedError(err), NULL);
         }
-        else {
-
-            if (value == NULL) {
+        else
+        {
+            if (value == NULL)
+            {
                 handler(invokeId, call->callbackParameter, IED_ERROR_OBJECT_DOES_NOT_EXIST, NULL);
             }
-            else {
-                if (MmsValue_getType(value) == MMS_DATA_ACCESS_ERROR) {
+            else
+            {
+                if (MmsValue_getType(value) == MMS_DATA_ACCESS_ERROR)
+                {
                     if (DEBUG_IED_CLIENT)
                         printf("DEBUG_IED_CLIENT: getRCBValues returned data-access-error!\n");
 
                     handler(invokeId, call->callbackParameter, iedConnection_mapDataAccessErrorToIedError(MmsValue_getDataAccessError(value)), NULL);
                 }
-                else {
-
+                else
+                {
                     ClientReportControlBlock returnRcb = updateRcb;
 
                     if (returnRcb == NULL)
                         returnRcb = ClientReportControlBlock_create(rcbReference);
 
-                    if (clientReportControlBlock_updateValues(returnRcb, value)) {
+                    if (clientReportControlBlock_updateValues(returnRcb, value))
+                    {
                         handler(invokeId, call->callbackParameter, IED_ERROR_OK, returnRcb);
                     }
-                    else {
+                    else
+                    {
                         if (DEBUG_IED_CLIENT)
                             printf("DEBUG_IED_CLIENT: getRCBValues returned wrong type!\n");
 
@@ -569,19 +574,18 @@ readObjectHandlerInternal(uint32_t invokeId, void* parameter, MmsError err, MmsV
                         if (updateRcb == NULL)
                             ClientReportControlBlock_destroy(returnRcb);
                     }
-
                 }
 
                 MmsValue_delete(value);
             }
-
         }
 
         GLOBAL_FREEMEM(rcbReference);
 
         iedConnection_releaseOutstandingCall(self, call);
     }
-    else {
+    else
+    {
         if (DEBUG_IED_CLIENT)
             printf("IED_CLIENT: internal error - no matching outstanding call!\n");
     }
@@ -598,7 +602,8 @@ IedConnection_getRCBValuesAsync(IedConnection self, IedClientError* error, const
 
     char* domainName = MmsMapping_getMmsDomainFromObjectReference(rcbReference, domainId);
 
-    if (domainName == NULL) {
+    if (domainName == NULL)
+    {
         *error = IED_ERROR_USER_PROVIDED_INVALID_ARGUMENT;
         return 0;
     }
@@ -608,7 +613,8 @@ IedConnection_getRCBValuesAsync(IedConnection self, IedClientError* error, const
 
     IedConnectionOutstandingCall call = iedConnection_allocateOutstandingCall(self);
 
-    if (call == NULL) {
+    if (call == NULL)
+    {
         *error = IED_ERROR_OUTSTANDING_CALL_LIMIT_REACHED;
         return 0;
     }
@@ -627,7 +633,8 @@ IedConnection_getRCBValuesAsync(IedConnection self, IedClientError* error, const
 
     *error = iedConnection_mapMmsErrorToIedError(err);
 
-    if (err != MMS_ERROR_NONE) {
+    if (err != MMS_ERROR_NONE)
+    {
         GLOBAL_FREEMEM(call->specificParameter2.pointer);
         iedConnection_releaseOutstandingCall(self, call);
         return 0;

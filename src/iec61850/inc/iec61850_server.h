@@ -2010,6 +2010,15 @@ typedef bool
 LIB61850_API void
 IedServer_setControlBlockAccessHandler(IedServer self, IedServer_ControlBlockAccessHandler handler, void* parameter);
 
+/**
+ * \brief Temporarily ignore read requests (for testing purposes)
+ *
+ * \param self the instance of IedServer to operate on.
+ * \param ignore true to ignore read requests, false to handle read requests.
+*/
+LIB61850_API void
+IedServer_ingoreReadAccess(IedServer self, bool ignore);
+
 /**@}*/
 
 /**@}*/
