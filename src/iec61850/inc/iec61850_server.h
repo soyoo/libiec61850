@@ -815,7 +815,9 @@ LIB61850_API void
 IedServer_setConnectionIndicationHandler(IedServer self, IedConnectionIndicationHandler handler, void* parameter);
 
 /**
- * \brief Ignore all requests from clients
+ * \brief Ignore all requests from clients (for testing purposes)
+ *
+ * NOTE: This function will block all client requests on MMS layer
  * 
  * \param self the instance of IedServer to configure.
  * \param enable when true all requests from clients will be ignored
@@ -2017,7 +2019,7 @@ IedServer_setControlBlockAccessHandler(IedServer self, IedServer_ControlBlockAcc
  * \param ignore true to ignore read requests, false to handle read requests.
 */
 LIB61850_API void
-IedServer_ingoreReadAccess(IedServer self, bool ignore);
+IedServer_ignoreReadAccess(IedServer self, bool ignore);
 
 /**@}*/
 

@@ -2002,7 +2002,7 @@ IedServer_setControlBlockAccessHandler(IedServer self, IedServer_ControlBlockAcc
 }
 
 void
-IedServer_ingoreReadAccess(IedServer self, bool ignore)
+IedServer_ignoreReadAccess(IedServer self, bool ignore)
 {
     self->ignoreReadAccess = ignore;
 }
