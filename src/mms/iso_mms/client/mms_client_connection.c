@@ -1975,7 +1975,8 @@ mmsClient_getNameListSingleRequestAsync(
         void* parameter,
         LinkedList nameList)
 {
-    if (getConnectionState(self) != MMS_CONNECTION_STATE_CONNECTED) {
+    if (getConnectionState(self) != MMS_CONNECTION_STATE_CONNECTED)
+    {
         if (mmsError)
             *mmsError = MMS_ERROR_CONNECTION_LOST;
         goto exit_function;
@@ -1991,8 +1992,8 @@ mmsClient_getNameListSingleRequestAsync(
     if (associationSpecific)
         mmsClient_createMmsGetNameListRequestAssociationSpecific(invokeId,
                 payload, continueAfter);
-    else {
-
+    else
+    {
         if (objectClass == MMS_OBJECT_CLASS_DOMAIN)
             mmsClient_createMmsGetNameListRequestVMDspecific(invokeId,
                     payload, continueAfter);
@@ -2036,7 +2037,6 @@ getNameListHandler(uint32_t invokeId, void* parameter, MmsError mmsError, Linked
     Semaphore_post(parameters->sem);
 }
 
-
 static LinkedList /* <char*> */
 mmsClient_getNameList(MmsConnection self, MmsError *mmsError,
         const char* domainId,
@@ -2059,7 +2059,8 @@ mmsClient_getNameList(MmsConnection self, MmsError *mmsError,
     mmsClient_getNameListSingleRequestAsync(self, NULL, &err, domainId, objectClass, associationSpecific, NULL,
             getNameListHandler, &parameter, NULL);
 
-    if (err == MMS_ERROR_NONE) {
+    if (err == MMS_ERROR_NONE)
+    {
         Semaphore_wait(parameter.sem);
         err = parameter.err;
         list = parameter.nameList;
@@ -2068,7 +2069,8 @@ mmsClient_getNameList(MmsConnection self, MmsError *mmsError,
 
     Semaphore_destroy(parameter.sem);
 
-    while (moreFollows) {
+    while (moreFollows)
+    {
         parameter.sem = Semaphore_create(1);
 
         char* continueAfter = NULL;
@@ -2081,11 +2083,17 @@ mmsClient_getNameList(MmsConnection self, MmsError *mmsError,
         mmsClient_getNameListSingleRequestAsync(self, NULL, &err, domainId, objectClass, associationSpecific, continueAfter,
                getNameListHandler, &parameter, list);
 
-        if (err == MMS_ERROR_NONE) {
+        if (err == MMS_ERROR_NONE)
+        {
             Semaphore_wait(parameter.sem);
             err = parameter.err;
             list = parameter.nameList;
             moreFollows = parameter.moreFollows;
+        }
+        else
+        {
+            /* exit look when message cannot be sent */
+            moreFollows = false;
         }
 
         Semaphore_destroy(parameter.sem);
@@ -2094,8 +2102,10 @@ mmsClient_getNameList(MmsConnection self, MmsError *mmsError,
     if (mmsError)
         *mmsError = err;
 
-    if (err != MMS_ERROR_NONE) {
-        if (list) {
+    if (err != MMS_ERROR_NONE)
+    {
+        if (list)
+        {
             LinkedList_destroy(list);
             list = NULL;
         }
@@ -2187,7 +2197,6 @@ MmsConnection_getVariableListNamesAssociationSpecificAsync(MmsConnection self, u
     mmsClient_getNameListSingleRequestAsync(self, usedInvokeId, mmsError, NULL, MMS_OBJECT_CLASS_NAMED_VARIABLE_LIST, true,
             continueAfter, handler, parameter, NULL);
 }
-
 
 struct readNVParameters
 {
