@@ -1874,6 +1874,9 @@ namespace IEC61850
             [return: MarshalAs(UnmanagedType.I1)]
             static extern bool ControlAction_getInterlockCheck(IntPtr self);
 
+            [DllImport("iec61850", CallingConvention = CallingConvention.Cdecl)]
+            static extern IntPtr ControlAction_getT(IntPtr self);
+
             private IntPtr self;
             private IedServer.ControlHandlerInfo info;
             private IedServer iedServer;
@@ -2002,6 +2005,18 @@ namespace IEC61850
             public bool GetInterlockCheck()
             {
                 return ControlAction_getInterlockCheck(self);
+            }
+
+            /// <summary>
+            /// Gets the time (paramter T) of the control action
+            /// </summary>
+            public Timestamp GetT()
+            {
+                IntPtr tPtr = ControlAction_getT(self);
+
+                Timestamp t = new Timestamp(tPtr, false);
+
+                return new Timestamp(t);
             }
         }
 

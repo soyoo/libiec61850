@@ -169,6 +169,7 @@ getCancelParameterTest(MmsValue* operParameters)
     return NULL;
 }
 
+/* access the MmsValue of Oper.T or SBOw.T */
 static MmsValue*
 getOperParameterTime(MmsValue* operParameters)
 {
@@ -182,7 +183,7 @@ getOperParameterTime(MmsValue* operParameters)
             timeParameter = MmsValue_getElement(operParameters, 3);
     }
 
-    if (timeParameter != NULL)
+    if (timeParameter)
         if ((MmsValue_getType(timeParameter) == MMS_UTC_TIME) || (MmsValue_getType(timeParameter) == MMS_BINARY_TIME))
             return timeParameter;
 
@@ -2125,6 +2126,7 @@ Control_writeAccessControlObject(MmsMapping* self, MmsDomain* domain, const char
                 MmsValue* origin = getOperParameterOrigin(value);
                 MmsValue* check = getOperParameterCheck(value);
                 MmsValue* test = getOperParameterTest(value);
+                MmsValue* t = getOperParameterTime(value);
 
                 if (checkValidityOfOriginParameter(origin) == false)
                 {
@@ -2137,6 +2139,11 @@ Control_writeAccessControlObject(MmsMapping* self, MmsDomain* domain, const char
                         printf("IED_SERVER: SBOw - invalid origin value\n");
 
                     goto free_and_return;
+                }
+
+                if (t)
+                {
+                    Timestamp_fromMmsValue(&(controlObject->T), t);
                 }
 
                 int state = getState(controlObject);
@@ -2269,6 +2276,8 @@ Control_writeAccessControlObject(MmsMapping* self, MmsDomain* domain, const char
             indication = DATA_ACCESS_ERROR_OBJECT_ACCESS_DENIED;
             goto free_and_return;
         }
+
+        Timestamp_fromMmsValue(&(controlObject->T), timeParameter);
 
         if (checkValidityOfOriginParameter(origin) == false)
         {
@@ -2688,6 +2697,14 @@ ControlAction_getControlTime(ControlAction self)
     ControlObject* controlObject = (ControlObject*) self;
 
     return controlObject->operateTime;
+}
+
+Timestamp*
+ControlAction_getT(ControlAction self)
+{
+    ControlObject* controlObject = (ControlObject*) self;
+
+    return &(controlObject->T);
 }
 
 #endif /* (CONFIG_IEC61850_CONTROL_SERVICE == 1) */

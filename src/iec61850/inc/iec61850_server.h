@@ -1449,7 +1449,7 @@ LIB61850_API DataObject*
 ControlAction_getControlObject(ControlAction self);
 
 /**
- * \brief Gets the time of the control, if it's a timeActivatedControl, returns 0, if it's not.
+ * \brief Gets the time of the control (attribute "operTm"), if it's a timeActivatedControl, returns 0, if it's not.
  *
  * \param self the control action instance
  *
@@ -1457,6 +1457,16 @@ ControlAction_getControlObject(ControlAction self);
  */
 LIB61850_API uint64_t
 ControlAction_getControlTime(ControlAction self);
+
+/**
+ * \brief Gets the time (attribute "T") of the last received control action (Oper or Select)
+ *
+ * \param self the control action instance
+ *
+ * \return the time of the last received control action
+ */
+LIB61850_API Timestamp*
+ControlAction_getT(ControlAction self);
 
 /**
  * \brief Control model callback to perform the static tests (optional).

@@ -160,7 +160,7 @@
 /* allow application to set server identity (for MMS identity service) at runtime */
 #define CONFIG_IEC61850_SUPPORT_SERVER_IDENTITY 1
 
-/* Force memory alignment - required for some platforms (required more memory for buffered reporting) */
+/* Force memory alignment - required for some platforms (requires more memory for buffered reporting) */
 #define CONFIG_IEC61850_FORCE_MEMORY_ALIGNMENT 1
 
 /* default results for MMS identify service */
