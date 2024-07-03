@@ -37,7 +37,6 @@
 
 #define CONFIG_MMS_CONNECTION_DEFAULT_TIMEOUT 5000
 #define CONFIG_MMS_CONNECTION_DEFAULT_CONNECT_TIMEOUT 10000
-#define OUTSTANDING_CALLS 10
 
 static void
 setConnectionState(MmsConnection self, MmsConnectionState newState)
@@ -267,7 +266,7 @@ checkForOutstandingCall(MmsConnection self, uint32_t invokeId)
 
     Semaphore_wait(self->outstandingCallsLock);
 
-    for (i = 0; i < OUTSTANDING_CALLS; i++)
+    for (i = 0; i < self->maxOutstandingCalled; i++)
     {
         if (self->outstandingCalls[i].isUsed)
         {
@@ -291,7 +290,7 @@ addToOutstandingCalls(MmsConnection self, uint32_t invokeId, eMmsOutstandingCall
 
     Semaphore_wait(self->outstandingCallsLock);
 
-    for (i = 0; i < OUTSTANDING_CALLS; i++)
+    for (i = 0; i < self->maxOutstandingCalled; i++)
     {
         if (self->outstandingCalls[i].isUsed == false)
         {
@@ -319,7 +318,7 @@ removeFromOutstandingCalls(MmsConnection self, uint32_t invokeId)
 
     Semaphore_wait(self->outstandingCallsLock);
 
-    for (i = 0; i < OUTSTANDING_CALLS; i++)
+    for (i = 0; i < self->maxOutstandingCalled; i++)
     {
         if (self->outstandingCalls[i].isUsed)
         {
@@ -341,7 +340,7 @@ mmsClient_getMatchingObtainFileRequest(MmsConnection self, const char* filename)
 
     Semaphore_wait(self->outstandingCallsLock);
 
-    for (i = 0; i < OUTSTANDING_CALLS; i++)
+    for (i = 0; i < self->maxOutstandingCalled; i++)
     {
         if (self->outstandingCalls[i].isUsed)
         {
@@ -1088,7 +1087,7 @@ mmsIsoCallback(IsoIndication indication, void* parameter, ByteBuffer* payload)
 
         int i = 0;
 
-        for (i = 0; i < OUTSTANDING_CALLS; i++)
+        for (i = 0; i < self->maxOutstandingCalled; i++)
         {
             Semaphore_wait(self->outstandingCallsLock);
 
@@ -1140,7 +1139,7 @@ mmsIsoCallback(IsoIndication indication, void* parameter, ByteBuffer* payload)
         {
             int i;
 
-            for (i = 0; i < OUTSTANDING_CALLS; i++)
+            for (i = 0; i < self->maxOutstandingCalled; i++)
             {
                 Semaphore_wait(self->outstandingCallsLock);
 
@@ -1617,7 +1616,9 @@ MmsConnection_createInternal(TLSConfiguration tlsConfig, bool createThread)
         self->concludeHandlerParameter = NULL;
         self->concludeTimeout = 0;
 
-        self->outstandingCalls = (MmsOutstandingCall) GLOBAL_CALLOC(OUTSTANDING_CALLS, sizeof(struct sMmsOutstandingCall));
+        self->maxOutstandingCalling = CONFIG_DEFAULT_MAX_SERV_OUTSTANDING_CALLING;
+        self->maxOutstandingCalled = CONFIG_DEFAULT_MAX_SERV_OUTSTANDING_CALLED;
+        self->outstandingCalls = (MmsOutstandingCall) GLOBAL_CALLOC(CONFIG_DEFAULT_MAX_SERV_OUTSTANDING_CALLED, sizeof(struct sMmsOutstandingCall));
 
         self->isoParameters = IsoConnectionParameters_create();
 
@@ -1781,6 +1782,25 @@ void
 MmsConnection_setRequestTimeout(MmsConnection self, uint32_t timeoutInMs)
 {
     self->requestTimeout = timeoutInMs;
+}
+
+void
+MmsConnnection_setMaxOutstandingCalls(MmsConnection self, int calling, int called)
+{
+    if (calling < 1)
+        calling = 1;
+
+    if (called < 1)
+        called = 1;
+
+    if (self->outstandingCalls)
+    {
+        GLOBAL_FREEMEM(self->outstandingCalls);
+    }
+
+    self->maxOutstandingCalling = calling;
+    self->maxOutstandingCalled = called;
+    self->outstandingCalls = (MmsOutstandingCall)GLOBAL_CALLOC(called, sizeof(struct sMmsOutstandingCall));
 }
 
 uint32_t

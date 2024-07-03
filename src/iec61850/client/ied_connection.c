@@ -33,7 +33,6 @@
 
 #define DEFAULT_CONNECTION_TIMEOUT 10000
 #define DATA_SET_MAX_NAME_LENGTH 64 /* is 32 according to standard! */
-#define OUTSTANDING_CALLS 12
 
 typedef struct sICLogicalDevice
 {
@@ -272,7 +271,7 @@ iedConnection_allocateOutstandingCall(IedConnection self)
 
     int i = 0;
 
-    for (i = 0; i < OUTSTANDING_CALLS; i++)
+    for (i = 0; i < self->maxOutstandingCalled; i++)
     {
         if (self->outstandingCalls[i].used == false)
         {
@@ -306,7 +305,7 @@ iedConnection_lookupOutstandingCall(IedConnection self, uint32_t invokeId)
 
     int i = 0;
 
-    for (i = 0; i < OUTSTANDING_CALLS; i++)
+    for (i = 0; i < self->maxOutstandingCalled; i++)
     {
         if ((self->outstandingCalls[i].used) && (self->outstandingCalls[i].invokeId == invokeId))
         {
@@ -717,7 +716,8 @@ createNewConnectionObject(TLSConfiguration tlsConfig, bool useThreads)
         self->reportHandlerMutex = Semaphore_create(1);
 
         self->outstandingCallsLock = Semaphore_create(1);
-        self->outstandingCalls = (IedConnectionOutstandingCall) GLOBAL_CALLOC(OUTSTANDING_CALLS, sizeof(struct sIedConnectionOutstandingCall));
+        self->maxOutstandingCalled = CONFIG_DEFAULT_MAX_SERV_OUTSTANDING_CALLED;
+        self->outstandingCalls = (IedConnectionOutstandingCall) GLOBAL_CALLOC(CONFIG_DEFAULT_MAX_SERV_OUTSTANDING_CALLED, sizeof(struct sIedConnectionOutstandingCall));
 
         self->connectionTimeout = DEFAULT_CONNECTION_TIMEOUT;
 
@@ -763,6 +763,29 @@ IedConnection_setLocalAddress(IedConnection self, const char* localIpAddress, in
 }
 
 void
+IedConnection_setMaxOutstandingCalls(IedConnection self, int calling, int called)
+{
+    if (calling < 1)
+        calling = 1;
+
+    if (called < 1)
+        called = 1;
+
+    if (self->outstandingCalls)
+    {
+        GLOBAL_FREEMEM(self->outstandingCalls);
+    }
+
+    self->maxOutstandingCalled = called;
+    self->outstandingCalls = (IedConnectionOutstandingCall)GLOBAL_CALLOC(called, sizeof(struct sIedConnectionOutstandingCall));
+
+    if (self->connection)
+    {
+        MmsConnnection_setMaxOutstandingCalls(self->connection, calling, called);
+    }
+}
+
+void
 IedConnection_setConnectTimeout(IedConnection self, uint32_t timeoutInMs)
 {
     self->connectionTimeout = timeoutInMs;
@@ -771,7 +794,8 @@ IedConnection_setConnectTimeout(IedConnection self, uint32_t timeoutInMs)
 void
 IedConnection_setRequestTimeout(IedConnection self, uint32_t timeoutInMs)
 {
-    if (self->connection) {
+    if (self->connection)
+    {
         MmsConnection_setRequestTimeout(self->connection, timeoutInMs);
     }
 }
