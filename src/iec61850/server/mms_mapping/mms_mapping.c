@@ -2499,43 +2499,6 @@ writeAccessGooseControlBlock(MmsMapping* self, MmsDomain* domain, const char* va
 
 #endif /* (CONFIG_INCLUDE_GOOSE_SUPPORT == 1) */
 
-#if 0
-static MmsValue*
-checkIfValueBelongsToModelNode(DataAttribute* dataAttribute, MmsValue* value, MmsValue* newValue)
-{
-    if (dataAttribute->mmsValue == value)
-        return newValue;
-
-    DataAttribute* child = (DataAttribute*) dataAttribute->firstChild;
-
-    while (child != NULL) {
-        MmsValue* tmpValue = checkIfValueBelongsToModelNode(child, value, newValue);
-
-        if (tmpValue != NULL)
-            return tmpValue;
-        else
-            child = (DataAttribute*) child->sibling;
-    }
-
-    if (MmsValue_getType(value) == MMS_STRUCTURE) {
-        int elementCount = MmsValue_getArraySize(value);
-
-        int i;
-        for (i = 0; i < elementCount; i++) {
-            MmsValue* childValue = MmsValue_getElement(value, i);
-            MmsValue* childNewValue = MmsValue_getElement(newValue, i);
-
-            MmsValue* tmpValue = checkIfValueBelongsToModelNode(dataAttribute, childValue, childNewValue);
-
-            if (tmpValue != NULL)
-                return tmpValue;
-        }
-    }
-
-    return NULL;
-}
-#endif
-
 static FunctionalConstraint
 getFunctionalConstraintForWritableNode(char* separator)
 {
@@ -2626,7 +2589,7 @@ mmsWriteHandler(void* parameter, MmsDomain* domain,
 
     /* Access control based on functional constraint */
 
-    char* separator = strchr(variableId, '$');
+    char* separator = (char*)strchr(variableId, '$');
 
     if (separator == NULL)
         return DATA_ACCESS_ERROR_INVALID_ADDRESS;
