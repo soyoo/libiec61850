@@ -1,7 +1,7 @@
 /*
  *  socket_linux.c
  *
- *  Copyright 2013-2021 Michael Zillgith
+ *  Copyright 2013-2024 Michael Zillgith
  *
  *  This file is part of Platform Abstraction Layer (libpal)
  *  for libiec61850, libmms, and lib60870.
@@ -907,7 +907,7 @@ UdpSocket_receiveFrom(UdpSocket self, char* address, int maxAddrSize, uint8_t* m
 {
     //TODO add support for IPv6
     struct sockaddr_storage remoteAddress;
-
+    memset(&remoteAddress, 0, sizeof(struct sockaddr_storage));
     socklen_t structSize = sizeof(struct sockaddr_storage);
 
     int result = recvfrom(self->fd, msg, msgSize, MSG_DONTWAIT, (struct sockaddr*)&remoteAddress, &structSize);

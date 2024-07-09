@@ -540,17 +540,18 @@ updateDataSetsWithCachedValues(IedServer self)
     }
 }
 
-
 IedServer
 IedServer_createWithConfig(IedModel* dataModel, TLSConfiguration tlsConfiguration, IedServerConfig serverConfiguration)
 {
     IedServer self = (IedServer) GLOBAL_CALLOC(1, sizeof(struct sIedServer));
 
-    if (self) {
+    if (self)
+    {
         self->model = dataModel;
 
         self->running = false;
         self->localIpAddress = NULL;
+        self->ignoreReadAccess = false;
 
 #if (CONFIG_IEC61850_EDITION_1 == 1)
         self->edition = IEC_61850_EDITION_1;
@@ -561,7 +562,8 @@ IedServer_createWithConfig(IedModel* dataModel, TLSConfiguration tlsConfiguratio
 #if (CONFIG_MMS_SERVER_CONFIG_SERVICES_AT_RUNTIME == 1)
         self->logServiceEnabled = true;
 
-        if (serverConfiguration) {
+        if (serverConfiguration)
+        {
             self->logServiceEnabled = serverConfiguration->enableLogService;
             self->edition = serverConfiguration->edition;
         }
@@ -574,7 +576,8 @@ IedServer_createWithConfig(IedModel* dataModel, TLSConfiguration tlsConfiguratio
 #endif /* (CONFIG_MMS_SERVER_CONFIG_SERVICES_AT_RUNTIME == 1) */
 
 #if (CONFIG_IEC61850_REPORT_SERVICE == 1)
-        if (serverConfiguration) {
+        if (serverConfiguration)
+        {
             self->reportBufferSizeBRCBs = serverConfiguration->reportBufferSize;
             self->reportBufferSizeURCBs = serverConfiguration->reportBufferSizeURCBs;
             self->enableBRCBResvTms = serverConfiguration->enableResvTmsForBRCB;
@@ -582,7 +585,8 @@ IedServer_createWithConfig(IedModel* dataModel, TLSConfiguration tlsConfiguratio
             self->syncIntegrityReportTimes = serverConfiguration->syncIntegrityReportTimes;
             self->rcbSettingsWritable = serverConfiguration->reportSettingsWritable;
         }
-        else {
+        else
+        {
             self->reportBufferSizeBRCBs = CONFIG_REPORTING_DEFAULT_REPORT_BUFFER_SIZE;
             self->reportBufferSizeURCBs = CONFIG_REPORTING_DEFAULT_REPORT_BUFFER_SIZE;
             self->enableOwnerForRCB = false;
@@ -602,11 +606,13 @@ IedServer_createWithConfig(IedModel* dataModel, TLSConfiguration tlsConfiguratio
 #endif
 
 #if (CONFIG_IEC61850_SETTING_GROUPS == 1)
-        if (serverConfiguration) {
+        if (serverConfiguration)
+        {
             self->enableEditSG = serverConfiguration->enableEditSG;
             self->hasSGCBResvTms = serverConfiguration->enableResvTmsForSGCB;
         }
-        else {
+        else
+        {
             self->enableEditSG = true;
             self->hasSGCBResvTms = true;
         }
@@ -614,14 +620,15 @@ IedServer_createWithConfig(IedModel* dataModel, TLSConfiguration tlsConfiguratio
 
         self->mmsMapping = MmsMapping_create(dataModel, self);
 
-        if (self->mmsMapping) {
-
+        if (self->mmsMapping)
+        {
             self->mmsDevice = MmsMapping_getMmsDeviceModel(self->mmsMapping);
 
             self->mmsServer = MmsServer_create(self->mmsDevice, tlsConfiguration);
 
 #if (CONFIG_MMS_SERVER_CONFIG_SERVICES_AT_RUNTIME == 1)
-            if (serverConfiguration) {
+            if (serverConfiguration)
+            {
                 MmsServer_enableFileService(self->mmsServer, serverConfiguration->enableFileService);
                 MmsServer_enableDynamicNamedVariableListService(self->mmsServer, serverConfiguration->enableDynamicDataSetService);
                 MmsServer_setMaxAssociationSpecificDataSets(self->mmsServer, serverConfiguration->maxAssociationSpecificDataSets);
@@ -668,7 +675,8 @@ IedServer_createWithConfig(IedModel* dataModel, TLSConfiguration tlsConfiguratio
 
             IedServer_setTimeQuality(self, true, false, false, 10);
         }
-        else {
+        else
+        {
             IedServer_destroy(self);
             self = NULL;
         }
@@ -1680,6 +1688,38 @@ IedServer_handleWriteAccessForComplexAttribute(IedServer self, DataAttribute* da
 }
 
 void
+IedServer_handleWriteAccessForDataObject(IedServer self, DataObject* dataObject, FunctionalConstraint fc, WriteAccessHandler handler, void* parameter)
+{
+    if (dataObject == NULL) {
+        if (DEBUG_IED_SERVER)
+            printf("IED_SERVER: IedServer_handlerWriteAccessForDataObject - dataObject == NULL!\n");
+    }
+    else
+    {
+        ModelNode* childElement = dataObject->firstChild;
+
+        while (childElement)
+        {
+            if (childElement->modelType == DataAttributeModelType)
+            {
+                DataAttribute* dataAttribute = (DataAttribute*) childElement;
+
+                if (dataAttribute->fc == fc)
+                {
+                    IedServer_handleWriteAccessForComplexAttribute(self, dataAttribute, handler, parameter);
+                }
+            }
+            else if (childElement->modelType == DataObjectModelType)
+            {
+                IedServer_handleWriteAccessForDataObject(self, (DataObject*) childElement, fc, handler, parameter);
+            }
+
+            childElement = childElement->sibling;
+        }
+    }
+}
+
+void
 IedServer_setReadAccessHandler(IedServer self, ReadAccessHandler handler, void* parameter)
 {
     MmsMapping_installReadAccessHandler(self->mmsMapping, handler, parameter);
@@ -1959,4 +1999,10 @@ IedServer_setControlBlockAccessHandler(IedServer self, IedServer_ControlBlockAcc
 {
     self->mmsMapping->controlBlockAccessHandler = handler;
     self->mmsMapping->controlBlockAccessHandlerParameter = parameter;
+}
+
+void
+IedServer_ignoreReadAccess(IedServer self, bool ignore)
+{
+    self->ignoreReadAccess = ignore;
 }

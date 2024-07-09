@@ -287,7 +287,7 @@ mmsServer_isAccessToArrayComponent(AlternateAccess_t* alternateAccess)
 
 MmsValue*
 mmsServer_getComponentOfArrayElement(AlternateAccess_t* alternateAccess, MmsVariableSpecification* namedVariable,
-        MmsValue* structuredValue)
+        MmsValue* structuredValue, char* componentId)
 {
     MmsValue* retValue = NULL;
 
@@ -309,24 +309,43 @@ mmsServer_getComponentOfArrayElement(AlternateAccess_t* alternateAccess, MmsVari
             goto exit_function;
 
         int i;
-        for (i = 0; i < structSpec->typeSpec.structure.elementCount; i++) {
-
+        for (i = 0; i < structSpec->typeSpec.structure.elementCount; i++)
+        {
             if ((int) strlen(structSpec->typeSpec.structure.elements[i]->name)
-                    == component.size) {
+                    == component.size)
+            {
                 if (strncmp(structSpec->typeSpec.structure.elements[i]->name,
-                        (char*) component.buf, component.size) == 0) {
+                        (char*) component.buf, component.size) == 0)
+                {
                     MmsValue* value = MmsValue_getElement(structuredValue, i);
 
-                    if (mmsServer_isAccessToArrayComponent(
-                            alternateAccess->list.array[0]->choice.unnamed->choice.selectAlternateAccess.alternateAccess)) {
-                        retValue =
-                                mmsServer_getComponentOfArrayElement(
-                                        alternateAccess->list.array[0]->choice.unnamed->choice.selectAlternateAccess.alternateAccess,
-                                        structSpec->typeSpec.structure.elements[i],
-                                        value);
+                    if (value)
+                    {
+                        if (mmsServer_isAccessToArrayComponent(
+                                alternateAccess->list.array[0]->choice.unnamed->choice.selectAlternateAccess.alternateAccess))
+                        {
+                            if (componentId)
+                            {
+                                strcat(componentId, structSpec->typeSpec.structure.elements[i]->name);
+                                strcat(componentId, "$");
+                            }
+
+                            retValue =
+                                    mmsServer_getComponentOfArrayElement(
+                                            alternateAccess->list.array[0]->choice.unnamed->choice.selectAlternateAccess.alternateAccess,
+                                            structSpec->typeSpec.structure.elements[i],
+                                            value, componentId);
+                        }
+                        else
+                        {
+                            if (componentId)
+                            {
+                                strcat(componentId, structSpec->typeSpec.structure.elements[i]->name);
+                            }
+
+                            retValue = value;
+                        }
                     }
-                    else
-                        retValue = value;
 
                     goto exit_function;
                 }

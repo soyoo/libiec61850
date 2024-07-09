@@ -843,6 +843,7 @@ UdpSocket_receiveFrom(UdpSocket self, char* address, int maxAddrSize, uint8_t* m
 {
     //TODO add support for IPv6
     struct sockaddr_storage remoteAddress;
+    memset(&remoteAddress, 0, sizeof(struct sockaddr_storage));
     socklen_t structSize = sizeof(struct sockaddr_storage);
 
     if (address)

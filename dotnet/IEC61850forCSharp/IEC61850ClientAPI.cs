@@ -432,6 +432,9 @@ namespace IEC61850
             static extern UInt32 IedConnection_getRequestTimeout(IntPtr self);
 
             [DllImport("iec61850", CallingConvention = CallingConvention.Cdecl)]
+            static extern void IedConnection_setMaxOutstandingCalls(IntPtr self, int calling, int called);
+
+            [DllImport("iec61850", CallingConvention = CallingConvention.Cdecl)]
             static extern void IedConnection_setTimeQuality(IntPtr self, [MarshalAs(UnmanagedType.I1)] bool leapSecondKnown, [MarshalAs(UnmanagedType.I1)] bool clockFailure, [MarshalAs(UnmanagedType.I1)] bool clockNotSynchronized, int subsecondPrecision);
 
             [DllImport("iec61850", CallingConvention = CallingConvention.Cdecl)]
@@ -558,6 +561,12 @@ namespace IEC61850
 
             [DllImport("iec61850", CallingConvention = CallingConvention.Cdecl)]
             static extern void IedConnection_installStateChangedHandler(IntPtr connection, InternalStateChangedHandler handler, IntPtr parameter);
+
+            [DllImport("iec61850", CallingConvention = CallingConvention.Cdecl)]
+            static extern void IedServer_ignoreReadAccess(IntPtr self, [MarshalAs(UnmanagedType.I1)] bool ignore);
+
+            [DllImport("iec61850", CallingConvention = CallingConvention.Cdecl)]
+            static extern void IedServer_ignoreClientRequests(IntPtr self, [MarshalAs(UnmanagedType.I1)] bool ignore);
 
             /*********************
              * Async functions
@@ -813,6 +822,16 @@ namespace IEC61850
                 {
                     IedConnection_setRequestTimeout(connection, value);
                 }
+            }
+
+            /// <summary>
+            /// Set the maximum number outstanding calls allowed for this connection
+            /// </summary>
+            /// <param name="calling">the maximum outstanding calls allowed by the caller (client)</param>
+            /// <param name="called">the maximum outstanding calls allowed by the called endpoint (server)</param>
+            public void SetMaxOutstandingCalls(int calling, int called)
+            {
+                IedConnection_setMaxOutstandingCalls(connection, calling, called);
             }
 
             /// <summary>
@@ -1175,6 +1194,9 @@ namespace IEC61850
 
             private static List<MmsJournalEntry> WrapNativeLogQueryResult(IntPtr linkedList)
             {
+                if (linkedList == IntPtr.Zero)
+                    return null;
+
                 List<MmsJournalEntry> journalEntries = new List<MmsJournalEntry>();
 
                 IntPtr element = LinkedList_getNext(linkedList);
@@ -1946,6 +1968,24 @@ namespace IEC61850
             }
 
             /// <summary>
+            /// Ignore all MMS requests from clients (for testing purposes)
+            /// </summary>
+            /// <param name="ignore">when true all requests from clients will be ignored</param>
+            public void IgnoreClientRequests(bool ignore)
+            {
+                IedServer_ignoreClientRequests(connection, ignore);
+            }
+
+            /// <summary>
+            /// Temporarily ignore read requests (for testing purposes)
+            /// </summary>
+            /// <param name="ignore">true to ignore read requests, false to handle read requests.</param>
+            public void IgnoreReadAccess(bool ignore)
+            {
+                IedServer_ignoreReadAccess(connection, ignore);
+            }
+
+            /// <summary>
             /// Read the values of a data set (GetDataSetValues service).
             /// </summary>
             /// <description>This function will invoke a readDataSetValues service and return a new DataSet value containing the
@@ -2238,22 +2278,27 @@ namespace IEC61850
                 GetDataSetDirectoryHandler handler = callbackInfo.Item1;
                 object handlerParameter = callbackInfo.Item2;
 
-                IntPtr element = LinkedList_getNext(dataSetDirectory);
-
                 handle.Free();
 
-                List<string> newList = new List<string>();
+                List<string> newList = null;
 
-                while (element != IntPtr.Zero)
+                if (dataSetDirectory != IntPtr.Zero)
                 {
-                    string dataObject = Marshal.PtrToStringAnsi(LinkedList_getData(element));
+                    newList = new List<string>();
 
-                    newList.Add(dataObject);
+                    IntPtr element = LinkedList_getNext(dataSetDirectory);
 
-                    element = LinkedList_getNext(element);
+                    while (element != IntPtr.Zero)
+                    {
+                        string dataObject = Marshal.PtrToStringAnsi(LinkedList_getData(element));
+
+                        newList.Add(dataObject);
+
+                        element = LinkedList_getNext(element);
+                    }
+
+                    LinkedList_destroy(dataSetDirectory);
                 }
-
-                LinkedList_destroy(dataSetDirectory);
 
                 handler.Invoke(invokeId, handlerParameter, (IedClientError)err, newList, isDeletable);
             }
@@ -2428,10 +2473,8 @@ namespace IEC61850
                         dataSet = new DataSet(nativeDataSet);
                 }
                 
-
                 handler(invokeId, handlerParameter, clientError, dataSet);
             }
-
 
             public delegate void ReadDataSetHandler(UInt32 invokeId,object parameter,IedClientError err,DataSet dataSet);
 
@@ -2566,7 +2609,6 @@ namespace IEC61850
                 {
                     handler(invokeId, handlerParameter, clientError, null, moreFollows);
                 }
-
             }
 
             /// <summary>
@@ -2631,7 +2673,6 @@ namespace IEC61850
             {
                 return GetLogicalDeviceDataSetsAsync(null, ldName, continueAfter, handler, parameter);
             }
-
 
             public UInt32 GetLogicalDeviceDataSetsAsync(List<string> result, string ldName, string continueAfter, GetNameListHandler handler, object parameter)
             {
@@ -2977,6 +3018,19 @@ namespace IEC61850
             IED_STATE_CLOSING = 3
         }
 
+        public static class IedClientErrorExtension
+        {
+            [DllImport("iec61850", CallingConvention = CallingConvention.Cdecl)]
+            static extern IntPtr IedClientError_toString(int err);
+
+            public static string ToString(this IedClientError err)
+            {
+                string stringVal = Marshal.PtrToStringAnsi(IedClientError_toString((int)err));
+
+                return stringVal;
+            }
+        }
+
         /// <summary>
         /// Error codes for client side functions
         /// </summary>
@@ -3061,6 +3115,9 @@ namespace IEC61850
 
             /** Received an invalid response message from the server */
             IED_ERROR_MALFORMED_MESSAGE = 34,
+
+            /** Service was not executed because required resource is still in use */
+            IED_ERROR_OBJECT_CONSTRAINT_CONFLICT = 35,
 
             /** Service not implemented */
             IED_ERROR_SERVICE_NOT_IMPLEMENTED = 98,

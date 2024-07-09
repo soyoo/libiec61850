@@ -170,7 +170,7 @@
 /* allow application to set server identity (for MMS identity service) at runtime */
 #define CONFIG_IEC61850_SUPPORT_SERVER_IDENTITY 1
 
-/* Force memory alignment - required for some platforms (required more memory for buffered reporting) */
+/* Force memory alignment - required for some platforms (requires more memory for buffered reporting) */
 #define CONFIG_IEC61850_FORCE_MEMORY_ALIGNMENT 1
 
 /* compile with support for R-GOOSE (mbedtls requried) */
@@ -249,9 +249,23 @@
 /* enable to configure MmsServer at runtime */
 #define CONFIG_MMS_SERVER_CONFIG_SERVICES_AT_RUNTIME 1
 
+/* Define the default number of the maximum outstanding calls allowed by the caller (client) */
+#define CONFIG_DEFAULT_MAX_SERV_OUTSTANDING_CALLING 5
+
+/* Define the default number of the maximum outstanding calls allowed by the calling endpoint (server) */
+#define CONFIG_DEFAULT_MAX_SERV_OUTSTANDING_CALLED 5
+
 /************************************************************************************
  * Check configuration for consistency - DO NOT MODIFY THIS PART!
  ************************************************************************************/
+
+#if (CONFIG_DEFAULT_MAX_SERV_OUTSTANDING_CALLING < 1)
+#error "Invalid configuration: CONFIG_DEFAULT_MAX_SERV_OUTSTANDING_CALLING must be greater than 0!"
+#endif
+
+#if (CONFIG_DEFAULT_MAX_SERV_OUTSTANDING_CALLED < 1)
+#error "Invalid configuration: CONFIG_DEFAULT_MAX_SERV_OUTSTANDING_CALLED must be greater than 0!"
+#endif
 
 #if (MMS_JOURNAL_SERVICE != 1)
 

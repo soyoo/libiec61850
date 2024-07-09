@@ -1,7 +1,7 @@
 /*
  *  mms_mapping.c
  *
- *  Copyright 2013-2023 Michael Zillgith
+ *  Copyright 2013-2024 Michael Zillgith
  *
  *  This file is part of libIEC61850.
  *
@@ -1335,8 +1335,8 @@ checkForServiceTrackingVariables(MmsMapping* self, LogicalNode* logicalNode)
 {
     ModelNode* modelNode = logicalNode->firstChild;
 
-    while (modelNode) {
-
+    while (modelNode)
+    {
         if (!strcmp(modelNode->name, "SpcTrk") || !strcmp(modelNode->name, "DpcTrk") || 
                 !strcmp(modelNode->name, "IncTrk") || !strcmp(modelNode->name, "EncTrk1") || 
                 !strcmp(modelNode->name, "ApcFTrk") || !strcmp(modelNode->name, "ApcIntTrk") ||
@@ -2344,7 +2344,7 @@ lookupGCB(MmsMapping* self, MmsDomain* domain, char* lnName, char* objectName)
 #endif
 
 static MmsDataAccessError
-writeAccessGooseControlBlock(MmsMapping* self, MmsDomain* domain, char* variableIdOrig,
+writeAccessGooseControlBlock(MmsMapping* self, MmsDomain* domain, const char* variableIdOrig,
         MmsValue* value, MmsServerConnection connection)
 {
     char variableId[130];
@@ -2499,43 +2499,6 @@ writeAccessGooseControlBlock(MmsMapping* self, MmsDomain* domain, char* variable
 
 #endif /* (CONFIG_INCLUDE_GOOSE_SUPPORT == 1) */
 
-#if 0
-static MmsValue*
-checkIfValueBelongsToModelNode(DataAttribute* dataAttribute, MmsValue* value, MmsValue* newValue)
-{
-    if (dataAttribute->mmsValue == value)
-        return newValue;
-
-    DataAttribute* child = (DataAttribute*) dataAttribute->firstChild;
-
-    while (child != NULL) {
-        MmsValue* tmpValue = checkIfValueBelongsToModelNode(child, value, newValue);
-
-        if (tmpValue != NULL)
-            return tmpValue;
-        else
-            child = (DataAttribute*) child->sibling;
-    }
-
-    if (MmsValue_getType(value) == MMS_STRUCTURE) {
-        int elementCount = MmsValue_getArraySize(value);
-
-        int i;
-        for (i = 0; i < elementCount; i++) {
-            MmsValue* childValue = MmsValue_getElement(value, i);
-            MmsValue* childNewValue = MmsValue_getElement(newValue, i);
-
-            MmsValue* tmpValue = checkIfValueBelongsToModelNode(dataAttribute, childValue, childNewValue);
-
-            if (tmpValue != NULL)
-                return tmpValue;
-        }
-    }
-
-    return NULL;
-}
-#endif
-
 static FunctionalConstraint
 getFunctionalConstraintForWritableNode(char* separator)
 {
@@ -2605,16 +2568,28 @@ getAccessPolicyForFC(MmsMapping* self, FunctionalConstraint fc)
 
 static MmsDataAccessError
 mmsWriteHandler(void* parameter, MmsDomain* domain,
-        char* variableId, MmsValue* value, MmsServerConnection connection)
+        const char* variableId, int arrayIdx, const char* componentId, MmsValue* value, MmsServerConnection connection)
 {
     MmsMapping* self = (MmsMapping*) parameter;
 
     if (DEBUG_IED_SERVER)
-        printf("IED_SERVER: Write requested %s\n", variableId);
+    {
+        if (arrayIdx != -1) {
+            if (componentId) {
+                printf("IED_SERVER: Write requested %s(%i).%s\n", variableId, arrayIdx, componentId);
+            }
+            else {
+                printf("IED_SERVER: Write requested %s(%i)\n", variableId, arrayIdx);
+            }
+        }
+        else {
+            printf("IED_SERVER: Write requested %s\n", variableId);
+        }
+    }
 
     /* Access control based on functional constraint */
 
-    char* separator = strchr(variableId, '$');
+    char* separator = (char*)strchr(variableId, '$');
 
     if (separator == NULL)
         return DATA_ACCESS_ERROR_INVALID_ADDRESS;
@@ -2691,7 +2666,7 @@ mmsWriteHandler(void* parameter, MmsDomain* domain,
                 if (rcNameLen == variableIdLen) {
 
                     if (strncmp(variableId, rc->name, variableIdLen) == 0) {
-                        char* elementName = variableId + rcNameLen + 1;
+                        const char* elementName = variableId + rcNameLen + 1;
 
                         return Reporting_RCBWriteAccessHandler(self, rc, elementName, value, connection);
                     }
@@ -2712,6 +2687,10 @@ mmsWriteHandler(void* parameter, MmsDomain* domain,
 
         if (nextSep != NULL) {
             nextSep = strchr(nextSep + 1, '$');
+
+            if (nextSep == NULL) {
+                return DATA_ACCESS_ERROR_OBJECT_ACCESS_UNSUPPORTED;
+            }
 
             char* nameId = nextSep + 1;
 
@@ -2942,13 +2921,19 @@ mmsWriteHandler(void* parameter, MmsDomain* domain,
 #endif /* (CONFIG_IEC61850_SETTING_GROUPS == 1) */
 
     /* writable data model elements - SP, SV, CF, DC, BL */
-    if (fc != IEC61850_FC_NONE) {
+    if (fc != IEC61850_FC_NONE)
+    {
         MmsValue* cachedValue;
 
-        cachedValue = MmsServer_getValueFromCache(self->mmsServer, domain, variableId);
+        if (arrayIdx != -1) {
+            cachedValue = MmsServer_getValueFromCacheEx2(self->mmsServer, domain, variableId, arrayIdx, componentId);
+        }
+        else {
+            cachedValue = MmsServer_getValueFromCache(self->mmsServer, domain, variableId);
+        }
 
-        if (cachedValue) {
-
+        if (cachedValue)
+        {
             if (!MmsValue_equalTypes(cachedValue, value)) {
                 return DATA_ACCESS_ERROR_OBJECT_VALUE_INVALID;
             }
@@ -2961,7 +2946,8 @@ mmsWriteHandler(void* parameter, MmsDomain* domain,
                 printf("IED_SERVER: write to %s policy:%i\n", variableId, nodeAccessPolicy);
 
 #if (CONFIG_IEC61850_SETTING_GROUPS == 1)
-            if (isFunctionalConstraint("SE", separator)) {
+            if (isFunctionalConstraint("SE", separator))
+            {
                 SettingGroup* sg = getSettingGroupByMmsDomain(self, domain);
 
                 if (sg != NULL) {
@@ -2978,12 +2964,13 @@ mmsWriteHandler(void* parameter, MmsDomain* domain,
             /* Call write access handlers */
             LinkedList writeHandlerListElement = LinkedList_getNext(self->attributeAccessHandlers);
 
-            while (writeHandlerListElement != NULL) {
+            while (writeHandlerListElement)
+            {
                 AttributeAccessHandler* accessHandler = (AttributeAccessHandler*) writeHandlerListElement->data;
                 DataAttribute* dataAttribute = accessHandler->attribute;
 
-                if (dataAttribute->mmsValue == cachedValue) {
-
+                if (dataAttribute->mmsValue == cachedValue)
+                {
                     ClientConnection clientConnection = private_IedServer_getClientConnectionByHandle(self->iedServer,
                             connection);
 
@@ -2991,7 +2978,8 @@ mmsWriteHandler(void* parameter, MmsDomain* domain,
                         accessHandler->handler(dataAttribute, value, clientConnection,
                                 accessHandler->parameter);
 
-                    if ((handlerResult == DATA_ACCESS_ERROR_SUCCESS) || (handlerResult == DATA_ACCESS_ERROR_SUCCESS_NO_UPDATE)) {
+                    if ((handlerResult == DATA_ACCESS_ERROR_SUCCESS) || (handlerResult == DATA_ACCESS_ERROR_SUCCESS_NO_UPDATE))
+                    {
                         handlerFound = true;
 
                         if (handlerResult == DATA_ACCESS_ERROR_SUCCESS_NO_UPDATE)
@@ -3007,14 +2995,14 @@ mmsWriteHandler(void* parameter, MmsDomain* domain,
             }
 
             /* DENY access if no handler is found and default policy is DENY */
-            if (!handlerFound) {
-
+            if (!handlerFound)
+            {
                 if (nodeAccessPolicy == ACCESS_POLICY_DENY)
                     return DATA_ACCESS_ERROR_OBJECT_ACCESS_DENIED;
-
             }
 
-            if (updateValue) {
+            if (updateValue)
+            {
                 DataAttribute* da = IedModel_lookupDataAttributeByMmsValue(self->model, cachedValue);
 
                 if (da)
@@ -3161,7 +3149,6 @@ mmsReadHandler(void* parameter, MmsDomain* domain, char* variableId, MmsServerCo
     }
 #endif
 
-
 #if (CONFIG_INCLUDE_GOOSE_SUPPORT == 1)
     /* GOOSE control blocks - GO */
     if (isGooseControlBlock(separator)) {
@@ -3188,8 +3175,8 @@ mmsReadHandler(void* parameter, MmsDomain* domain, char* variableId, MmsServerCo
 
 #if (CONFIG_IEC61850_REPORT_SERVICE == 1)
     /* Report control blocks - BR, RP */
-    if (isReportControlBlock(separator)) {
-
+    if (isReportControlBlock(separator))
+    {
         LinkedList reportControls = self->reportControls;
 
         LinkedList nextElement = reportControls;
@@ -3210,11 +3197,12 @@ mmsReadHandler(void* parameter, MmsDomain* domain, char* variableId, MmsServerCo
         else
             variableIdLen = strlen(variableId);
 
-        while ((nextElement = LinkedList_getNext(nextElement)) != NULL) {
+        while ((nextElement = LinkedList_getNext(nextElement)) != NULL)
+        {
             ReportControl* rc = (ReportControl*) nextElement->data;
 
-            if (rc->domain == domain) {
-
+            if (rc->domain == domain)
+            {
                 int parentLNNameStrLen = strlen(rc->parentLN->name);
 
                 if (parentLNNameStrLen != lnNameLength)
@@ -3223,7 +3211,8 @@ mmsReadHandler(void* parameter, MmsDomain* domain, char* variableId, MmsServerCo
                 if (memcmp(rc->parentLN->name, variableId, parentLNNameStrLen) != 0)
                     continue;
 
-                if (strlen(rc->name) == variableIdLen) {
+                if (strlen(rc->name) == variableIdLen)
+                {
                     if (strncmp(variableId, rc->name, variableIdLen) == 0)
                     {
                         char* elementName = MmsMapping_getNextNameElement(reportName);
@@ -3640,15 +3629,26 @@ mmsReadAccessHandler (void* parameter, MmsDomain* domain, char* variableId, MmsS
     if (DEBUG_IED_SERVER)
         printf("IED_SERVER: mmsReadAccessHandler: Requested %s\n", variableId);
 
+    if (self->iedServer->ignoreReadAccess)
+    {
+        if (DEBUG_IED_SERVER)
+            printf("IED_SERVER: mmsReadAccessHandler - ignore request\n");
+
+        return DATA_ACCESS_ERROR_NO_RESPONSE;
+    }
+
     char* separator = strchr(variableId, '$');
 
 #if (CONFIG_IEC61850_SETTING_GROUPS == 1)
 
-    if (separator) {
-        if (isFunctionalConstraint("SE", separator)) {
+    if (separator)
+    {
+        if (isFunctionalConstraint("SE", separator))
+        {
             SettingGroup* sg = getSettingGroupByMmsDomain(self, domain);
 
-            if (sg != NULL) {
+            if (sg != NULL)
+            {
                 if (sg->sgcb->editSG == 0)
                     return DATA_ACCESS_ERROR_TEMPORARILY_UNAVAILABLE;
             }
@@ -3670,7 +3670,8 @@ mmsReadAccessHandler (void* parameter, MmsDomain* domain, char* variableId, MmsS
         {
             FunctionalConstraint fc = IEC61850_FC_NONE;
 
-            if (separator != NULL) {
+            if (separator != NULL)
+            {
                 fc = FunctionalConstraint_fromString(separator + 1);
 
                 if (fc == IEC61850_FC_BR || fc == IEC61850_FC_US ||
@@ -3691,23 +3692,27 @@ mmsReadAccessHandler (void* parameter, MmsDomain* domain, char* variableId, MmsS
                     {
                         char* doStart = strchr(separator + 1, '$');
 
-                        if (doStart != NULL) {
-
+                        if (doStart != NULL)
+                        {
                             char* doEnd = strchr(doStart + 1, '$');
 
-                            if (doEnd == NULL) {
+                            if (doEnd == NULL)
+                            {
                                 StringUtils_copyStringToBuffer(doStart + 1, str);
                             }
-                            else {
+                            else
+                            {
                                 doEnd--;
 
                                 StringUtils_createStringFromBufferInBuffer(str, (uint8_t*) (doStart + 1), doEnd - doStart);
                             }
 
-                            if (fc == IEC61850_FC_SP) {
+                            if (fc == IEC61850_FC_SP)
+                            {
                                 if (!strcmp(str, "SGCB"))
                                 {
-                                    if (self->controlBlockAccessHandler) {
+                                    if (self->controlBlockAccessHandler)
+                                    {
                                         ClientConnection clientConnection = private_IedServer_getClientConnectionByHandle(self->iedServer,
                                                                                     connection);
 
@@ -3722,10 +3727,10 @@ mmsReadAccessHandler (void* parameter, MmsDomain* domain, char* variableId, MmsS
 
                             ModelNode* dobj = ModelNode_getChild((ModelNode*) ln, str);
 
-                            if (dobj != NULL) {
-
-                                if (dobj->modelType == DataObjectModelType) {
-
+                            if (dobj != NULL)
+                            {
+                                if (dobj->modelType == DataObjectModelType)
+                                {
                                     ClientConnection clientConnection = private_IedServer_getClientConnectionByHandle(self->iedServer,
                                                                                                                       connection);
 
@@ -3734,7 +3739,8 @@ mmsReadAccessHandler (void* parameter, MmsDomain* domain, char* variableId, MmsS
                                 }
                             }
                         }
-                        else {
+                        else
+                        {
                             ClientConnection clientConnection = private_IedServer_getClientConnectionByHandle(self->iedServer,
                                                                                                                       connection);
 
@@ -3744,10 +3750,12 @@ mmsReadAccessHandler (void* parameter, MmsDomain* domain, char* variableId, MmsS
                     }
                 }
             }
-            else {
+            else
+            {
                 LogicalNode* ln = LogicalDevice_getLogicalNode(ld, variableId);
 
-                if (ln != NULL) {
+                if (ln != NULL)
+                {
                     ClientConnection clientConnection = private_IedServer_getClientConnectionByHandle(self->iedServer, connection);
 
                     return self->readAccessHandler(ld, ln, NULL, fc, clientConnection,
@@ -4219,10 +4227,12 @@ MmsMapping_triggerReportObservers(MmsMapping* self, MmsValue* value, int flag)
 
     bool modelLocked = self->isModelLocked;
 
-    while ((element = LinkedList_getNext(element)) != NULL) {
+    while ((element = LinkedList_getNext(element)) != NULL)
+    {
         ReportControl* rc = (ReportControl*) element->data;
 
-        if (rc->enabled || (rc->buffered && rc->dataSet != NULL)) {
+        if (rc->enabled || (rc->buffered && rc->dataSet != NULL))
+        {
             int index;
 
             switch (flag) {

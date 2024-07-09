@@ -3,7 +3,7 @@ package com.libiec61850.tools;
 /*
  *  DynamicModelGenerator.java
  *
- *  Copyright 2014-2020 Michael Zillgith
+ *  Copyright 2014-2024 Michael Zillgith
  *
  *  This file is part of libIEC61850.
  *
@@ -447,11 +447,7 @@ public class DynamicModelGenerator {
         output.println("}");
     }
 
-    private void exportDataObject(PrintStream output, DataObject dataObject, boolean isTransient) {
-        
-        if (dataObject.isTransient())
-            isTransient = true;
-        
+    private void exportDataObjectChild(PrintStream output, DataObject dataObject, boolean isTransient) {
         for (DataObject subDataObject : dataObject.getSubDataObjects()) {
             output.print("DO(" + subDataObject.getName() + " " + subDataObject.getCount() + "){\n");
 
@@ -463,6 +459,105 @@ public class DynamicModelGenerator {
         for (DataAttribute dataAttribute : dataObject.getDataAttributes()) {
             exportDataAttribute(output, dataAttribute, isTransient);
         }
+    }
+
+    private void exportDataObject(PrintStream output, DataObject dataObject, boolean isTransient) {
+        
+        if (dataObject.isTransient())
+            isTransient = true;
+
+        if (dataObject.getCount() > 0) {
+            /* data object is an array */
+            for (int i = 0; i < dataObject.getCount(); i++) {
+                output.print("[" + i + "]{\n");
+
+                exportDataObjectChild(output, dataObject, isTransient);
+
+                output.print("}\n");
+            }
+        }
+        else {
+            exportDataObjectChild(output, dataObject, isTransient);
+        }
+
+    }
+
+    private void printDataAttributeValue(PrintStream output, DataAttribute dataAttribute, boolean isTransient)
+    {
+        if (dataAttribute.isBasicAttribute()) {
+            DataModelValue value = dataAttribute.getValue();
+            
+            /* if no value is given use default value for type if present */
+            if (value == null) { 
+                value = dataAttribute.getDefinition().getValue();
+                
+                if (value != null)
+                    if (value.getValue() == null)
+                        value.updateEnumOrdValue(ied.getTypeDeclarations());        	   
+            }
+            
+            if (value != null) {
+                
+                switch (dataAttribute.getType()) {
+                case ENUMERATED:
+                case INT8:
+                case INT16:
+                case INT32:
+                case INT64:
+                    output.print("=" + value.getIntValue());
+                    break;
+                case INT8U:
+                case INT16U:
+                case INT24U:
+                case INT32U:
+                    output.print("=" + value.getLongValue());
+                    break;
+                case BOOLEAN:
+                    {
+                        Boolean boolVal = (Boolean) value.getValue();
+                        
+                        if (boolVal.booleanValue())
+                            output.print("=1");
+                    }
+                    break;
+                case UNICODE_STRING_255:
+                    output.print("=\"" + value.getValue()+ "\"");
+                    break;
+                case CURRENCY:
+                case VISIBLE_STRING_32:
+                case VISIBLE_STRING_64:
+                case VISIBLE_STRING_129:
+                case VISIBLE_STRING_255:
+                case VISIBLE_STRING_65:
+                    output.print("=\"" + value.getValue()+ "\"");
+                    break;
+                case FLOAT32:
+                case FLOAT64:
+                    output.print("=" + value.getValue());
+                    break;
+                case TIMESTAMP:
+                case ENTRY_TIME:
+                    output.print("=" + value.getLongValue());
+                    break;
+                
+                default:
+                    System.out.println("Unknown default value for " + dataAttribute.getName() + " type: " + dataAttribute.getType());
+                    break;
+                }
+                
+            }
+             
+            output.println(";");
+        } 
+        else {
+            output.println("{");
+ 
+            for (DataAttribute subDataAttribute : dataAttribute.getSubDataAttributes()) {
+                exportDataAttribute(output, subDataAttribute, isTransient);
+            }
+ 
+            output.println("}");
+        }    
     }
 
     private void exportDataAttribute(PrintStream output, DataAttribute dataAttribute, boolean isTransient) {
@@ -493,78 +588,22 @@ public class DynamicModelGenerator {
         else
             output.print("0");
         
-        output.print(")"); 
-                
-        if (dataAttribute.isBasicAttribute()) {
-           DataModelValue value = dataAttribute.getValue();
-           
-           /* if no value is given use default value for type if present */
-           if (value == null) { 
-        	   value = dataAttribute.getDefinition().getValue();
-        	   
-        	   if (value != null)
-	        	   if (value.getValue() == null)
-	        		   value.updateEnumOrdValue(ied.getTypeDeclarations());        	   
-           }
-           
-           if (value != null) {
-               
-               switch (dataAttribute.getType()) {
-               case ENUMERATED:
-               case INT8:
-               case INT16:
-               case INT32:
-               case INT64:
-                   output.print("=" + value.getIntValue());
-                   break;
-               case INT8U:
-               case INT16U:
-               case INT24U:
-               case INT32U:
-                   output.print("=" + value.getLongValue());
-                   break;
-               case BOOLEAN:
-                   {
-                       Boolean boolVal = (Boolean) value.getValue();
-                       
-                       if (boolVal.booleanValue())
-                           output.print("=1");
-                   }
-                   break;
-               case UNICODE_STRING_255:
-                   output.print("=\"" + value.getValue()+ "\"");
-                   break;
-               case CURRENCY:
-               case VISIBLE_STRING_32:
-               case VISIBLE_STRING_64:
-               case VISIBLE_STRING_129:
-               case VISIBLE_STRING_255:
-               case VISIBLE_STRING_65:
-                   output.print("=\"" + value.getValue()+ "\"");
-                   break;
-               case FLOAT32:
-               case FLOAT64:
-                   output.print("=" + value.getValue());
-                   break;
-               default:
-                   System.out.println("Unknown default value for " + dataAttribute.getName() + " type: " + dataAttribute.getType());
-                   break;
-               }
-               
-           }
-            
-            output.println(";");
-        } 
-        else {
-            output.println("{");
+        output.print(")");
 
-            for (DataAttribute subDataAttribute : dataAttribute.getSubDataAttributes()) {
-                exportDataAttribute(output, subDataAttribute, isTransient);
+        if (dataAttribute.getCount() > 0) {
+            output.print("{\n");
+
+            for (int i = 0; i < dataAttribute.getCount(); i++) {
+                output.print("[" + i + "]");
+
+                printDataAttributeValue(output, dataAttribute, isTransient);
             }
 
-            output.println("}");
+            output.print("}\n");
         }
-
+        else {
+            printDataAttributeValue(output, dataAttribute, isTransient);
+        }
     }
 
     public static void main(String[] args) throws FileNotFoundException {

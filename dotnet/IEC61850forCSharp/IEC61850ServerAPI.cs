@@ -1874,6 +1874,9 @@ namespace IEC61850
             [return: MarshalAs(UnmanagedType.I1)]
             static extern bool ControlAction_getInterlockCheck(IntPtr self);
 
+            [DllImport("iec61850", CallingConvention = CallingConvention.Cdecl)]
+            static extern IntPtr ControlAction_getT(IntPtr self);
+
             private IntPtr self;
             private IedServer.ControlHandlerInfo info;
             private IedServer iedServer;
@@ -2002,6 +2005,18 @@ namespace IEC61850
             public bool GetInterlockCheck()
             {
                 return ControlAction_getInterlockCheck(self);
+            }
+
+            /// <summary>
+            /// Gets the time (paramter T) of the control action
+            /// </summary>
+            public Timestamp GetT()
+            {
+                IntPtr tPtr = ControlAction_getT(self);
+
+                Timestamp t = new Timestamp(tPtr, false);
+
+                return new Timestamp(t);
             }
         }
 
@@ -2245,6 +2260,10 @@ namespace IEC61850
 
             [DllImport("iec61850", CallingConvention = CallingConvention.Cdecl)]
             static extern void IedServer_handleWriteAccessForComplexAttribute(IntPtr self, IntPtr dataAttribute,
+                InternalWriteAccessHandler handler, IntPtr parameter);
+
+            [DllImport("iec61850", CallingConvention = CallingConvention.Cdecl)]
+            static extern void IedServer_handleWriteAccessForDataObject(IntPtr self, IntPtr dataObject, int fc,
                 InternalWriteAccessHandler handler, IntPtr parameter);
 
             public delegate void ConnectionIndicationHandler(IedServer iedServer, ClientConnection clientConnection, bool connected, object parameter);
@@ -2713,12 +2732,27 @@ namespace IEC61850
                 }
             }
 
+            private void AddHandlerInfoForDataObjectRecursive(DataObject dataObject, FunctionalConstraint fc, WriteAccessHandler handler, object parameter, InternalWriteAccessHandler internalHandler)
+            {
+                foreach (ModelNode child in dataObject.GetChildren())
+                {
+                    if (child is DataAttribute && (child as DataAttribute).FC == fc)
+                    {
+                        AddHandlerInfoForDataAttributeRecursive(child as DataAttribute, handler, parameter, internalHandler);
+                    }
+                    else if (child is DataObject)
+                    {
+                        AddHandlerInfoForDataObjectRecursive(child as DataObject, fc, handler, parameter, internalHandler);
+                    }
+                }
+            }
+
             /// <summary>
             /// Install a WriteAccessHandler for a data attribute and for all sub data attributes
             /// </summary>
             /// This instructs the server to monitor write attempts by MMS clients to specific
-            /// data attributes.If a client tries to write to the monitored data attribute the
-            /// handler is invoked.The handler can decide if the write access will be allowed
+            /// data attributes. If a client tries to write to the monitored data attribute the
+            /// handler is invoked. The handler can decide if the write access will be allowed
             /// or denied.If a WriteAccessHandler is set for a specific data attribute - the
             /// default write access policy will not be performed for that data attribute.
             /// <remarks>
@@ -2736,6 +2770,27 @@ namespace IEC61850
                 AddHandlerInfoForDataAttributeRecursive(dataAttr, handler, parameter, internalHandler);
 
                 IedServer_handleWriteAccessForComplexAttribute(self, dataAttr.self, internalHandler, IntPtr.Zero);
+            }
+
+            /// <summary>
+            /// Install a WriteAccessHandler for a data object and for all sub data objects and sub data attributes that have the same functional constraint
+            /// </summary>
+            /// This instructs the server to monitor write attempts by MMS clients to specific
+            /// data attributes. If a client tries to write to the monitored data attribute the
+            /// handler is invoked. The handler can decide if the write access will be allowed
+            /// or denied. If a WriteAccessHandler is set the
+            /// default write access policy will not be performed for the matching data attributes.
+            /// <param name="dataObject">the data object to monitor</param>
+            /// <param name="fc">the functional constraint (FC) to monitor</param>
+            /// <param name="handler">the callback function that is invoked if a client tries to write to a monitored data attribute that is a child of the data object.</param>
+            /// <param name="parameter">a user provided parameter that is passed to the WriteAccessHandler when called.</param>
+            public void HandleWriteAccessForDataObject(DataObject dataObj, FunctionalConstraint fc, WriteAccessHandler handler, object parameter)
+            {
+                InternalWriteAccessHandler internalHandler = new InternalWriteAccessHandler(WriteAccessHandlerImpl);
+
+                AddHandlerInfoForDataObjectRecursive(dataObj, fc, handler, parameter, internalHandler);
+
+                IedServer_handleWriteAccessForDataObject(self, dataObj.self, (int)fc, internalHandler, IntPtr.Zero);
             }
 
             /// <summary>
