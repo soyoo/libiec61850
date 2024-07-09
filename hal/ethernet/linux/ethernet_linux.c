@@ -208,6 +208,8 @@ Ethernet_createSocket(const char* interfaceId, uint8_t* destAddress)
             memcpy(ethernetSocket->socketAddress.sll_addr, destAddress, 6);
 
         ethernetSocket->isBind = false;
+
+        Ethernet_setMode(ethernetSocket, ETHERNET_SOCKET_MODE_PROMISC);
     }
 
     return ethernetSocket;
