@@ -1,7 +1,7 @@
 ﻿/*
  *  TLS.cs
  *
- *  Copyright 2017-2022 Michael Zillgith
+ *  Copyright 2017-2024 Michael Zillgith
  *
  *  This file is part of libIEC61850.
  *
@@ -69,7 +69,9 @@ namespace IEC61850
             ALM_CERT_EXPIRED = 11,
             ALM_CERT_REVOKED = 12,
             ALM_CERT_NOT_CONFIGURED = 13,
-            ALM_CERT_NOT_TRUSTED = 14
+            ALM_CERT_NOT_TRUSTED = 14,
+            ALM_NO_CIPHER = 15,
+            INF_SESSION_ESTABLISHED = 16
         }
 
         public class TLSConnection
@@ -261,6 +263,18 @@ namespace IEC61850
             [return: MarshalAs(UnmanagedType.I1)]
             static extern bool TLSConfiguration_addCACertificateFromFile(IntPtr self, string filename);
 
+            [DllImport("tase2", CallingConvention = CallingConvention.Cdecl)]
+            static extern void TLSConfiguration_setMinTlsVersion(IntPtr self, int version);
+
+            [DllImport("tase2", CallingConvention = CallingConvention.Cdecl)]
+            static extern void TLSConfiguration_setMaxTlsVersion(IntPtr self, int version);
+
+            [DllImport("tase2", CallingConvention = CallingConvention.Cdecl)]
+            static extern void TLSConfiguration_addCipherSuite(IntPtr self, int ciphersuite);
+
+            [DllImport("tase2", CallingConvention = CallingConvention.Cdecl)]
+            static extern void TLSConfiguration_clearCipherSuiteList(IntPtr self);
+
             private TLSEventHandler eventHandler = null;
             private object eventHandlerParameter = null;
 
@@ -415,6 +429,53 @@ namespace IEC61850
                 {
                     throw new CryptographicException("Failed to set own key");
                 }
+            }
+
+            /// <summary>
+            /// Set minimal allowed TLS version to use
+            /// </summary>
+            /// <param name="version">lowest allowed TLS version</param>
+            public void SetMinTlsVersion(TLSConfigVersion version)
+            {
+                TLSConfiguration_setMinTlsVersion(self, (int)version);
+            }
+
+            /// <summary>
+            /// Set highest allowed TLS version to use
+            /// </summary>
+            /// <param name="version">highest allowed TLS version</param>
+            public void SetMaxTlsVersion(TLSConfigVersion version)
+            {
+                TLSConfiguration_setMaxTlsVersion(self, (int)version);
+            }
+
+#if NET
+            /// <summary>
+            /// Add an allowed ciphersuite to the list of allowed ciphersuites
+            /// </summary>
+            /// <param name="ciphersuite"></param>
+            public void addCipherSuite(TlsCipherSuite ciphersuite)
+            {
+                TLSConfiguration_addCipherSuite(self,(int) ciphersuite);
+            }
+#endif
+            /// <summary>
+            /// Add an allowed ciphersuite to the list of allowed ciphersuites
+            /// </summary>
+            /// <remarks>Version for .NET framework that does not support TlsCipherSuite enum</remarks>
+            /// <param name="ciphersuite"></param>
+            public void addCipherSuite(int ciphersuite)
+            {
+                TLSConfiguration_addCipherSuite(self, ciphersuite);
+            }
+
+            /// <summary>
+            /// Clears list of allowed ciphersuites
+            /// </summary>
+            /// <returns></returns>
+            public void clearCipherSuiteList()
+            {
+                TLSConfiguration_clearCipherSuiteList(self);
             }
 
             public void Dispose()
