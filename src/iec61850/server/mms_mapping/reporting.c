@@ -1,7 +1,7 @@
 /*
  *  reporting.c
  *
- *  Copyright 2013-2023 Michael Zillgith
+ *  Copyright 2013-2024 Michael Zillgith
  *
  *  This file is part of libIEC61850.
  *
@@ -185,7 +185,8 @@ purgeBuf(ReportControl* rc)
 static void
 deleteDataSetValuesShadowBuffer(ReportControl* self)
 {
-    if (self->bufferedDataSetValues != NULL) {
+    if (self->bufferedDataSetValues != NULL)
+    {
         assert(self->dataSet != NULL);
 
         int dataSetSize = DataSet_getSize(self->dataSet);
@@ -252,7 +253,7 @@ ReportControl_destroy(ReportControl* self)
 }
 
 MmsValue*
-ReportControl_getRCBValue(ReportControl* rc, char* elementName)
+ReportControl_getRCBValue(ReportControl* rc, const char* elementName)
 {
     if (rc->buffered) {
         if (strcmp(elementName, "RptID") == 0)
@@ -460,7 +461,7 @@ copyRCBValuesToTrackingObject(MmsMapping* self, ReportControl* rc)
 }
 
 static void
-updateSingleTrackingValue(MmsMapping* self, ReportControl* rc, char* name, MmsValue* newValue)
+updateSingleTrackingValue(MmsMapping* self, ReportControl* rc, const char* name, MmsValue* newValue)
 {
     if (rc->buffered) {
         if (self->brcbTrk) {
@@ -724,9 +725,23 @@ updateReportDataset(MmsMapping* mapping, ReportControl* rc, MmsValue* newDatSet,
             success = true;
             dataSetValue = NULL;
 
-            if (rc->buffered) {
-                rc->isBuffering = false;
-                purgeBuf(rc);
+            if (rc->dataSet) {
+                if (rc->buffered) {
+                    rc->isBuffering = false;
+                    purgeBuf(rc);
+                }
+
+                /* delete pending events */
+                deleteDataSetValuesShadowBuffer(rc);
+
+                if (isUsedDataSetDynamic) {
+                    if (rc->dataSet) {
+                        MmsMapping_freeDynamicallyCreatedDataSet(rc->dataSet);
+                    }
+                }
+
+                /* release used data set */
+                rc->dataSet = NULL;
             }
         }
         else
@@ -739,7 +754,6 @@ updateReportDataset(MmsMapping* mapping, ReportControl* rc, MmsValue* newDatSet,
 
     /* check if old and new data sets are the same */
     if (rc->dataSet && dataSetValue) {
-
         const char* dataSetLdName = rc->dataSet->logicalDeviceName;
         const char* dataSetName = rc->dataSet->name;
         const char* newDataSetName = MmsValue_toString(dataSetValue);
@@ -790,7 +804,8 @@ updateReportDataset(MmsMapping* mapping, ReportControl* rc, MmsValue* newDatSet,
         }
     }
 
-    if (dataSetValue) {
+    if (dataSetValue)
+    {
         const char* dataSetName = MmsValue_toString(dataSetValue);
 
         DataSet* dataSet = IedModel_lookupDataSet(mapping->model, dataSetName);
@@ -1777,12 +1792,24 @@ ReportControl_readAccess(ReportControl* rc, MmsMapping* mmsMapping, MmsServerCon
 
     ClientConnection clientConnection = NULL;
 
-    if (mmsMapping->rcbAccessHandler || mmsMapping->rcbEventHandler) {
+    if (mmsMapping->controlBlockAccessHandler || mmsMapping->rcbEventHandler) {
         clientConnection = private_IedServer_getClientConnectionByHandle(mmsMapping->iedServer, connection);
     }
 
-    if (mmsMapping->rcbAccessHandler) {
-        if (mmsMapping->rcbAccessHandler(mmsMapping->rcbAccessHandlerParameter, rc->rcb, clientConnection, RCB_EVENT_GET_PARAMETER) == false) {
+    if (mmsMapping->controlBlockAccessHandler)
+    {
+        ACSIClass acsiClass;
+
+        if (rc->rcb->buffered)
+            acsiClass = ACSI_CLASS_BRCB;
+        else
+            acsiClass = ACSI_CLASS_URCB;
+
+        LogicalNode* ln = rc->rcb->parent;
+
+        LogicalDevice* ld = (LogicalDevice*)ln->parent;
+
+        if (mmsMapping->controlBlockAccessHandler(mmsMapping->controlBlockAccessHandlerParameter, clientConnection, acsiClass, ld, ln, rc->rcb->name, elementName, IEC61850_CB_ACCESS_TYPE_READ) == false) {
             accessError = DATA_ACCESS_ERROR_OBJECT_ACCESS_DENIED;
             accessAllowed = false;
         }
@@ -1880,7 +1907,7 @@ reserveRcb(ReportControl* rc,  MmsServerConnection connection)
 }
 
 MmsDataAccessError
-Reporting_RCBWriteAccessHandler(MmsMapping* self, ReportControl* rc, char* elementName, MmsValue* value,
+Reporting_RCBWriteAccessHandler(MmsMapping* self, ReportControl* rc, const char* elementName, MmsValue* value,
         MmsServerConnection connection)
 {
     MmsDataAccessError retVal = DATA_ACCESS_ERROR_SUCCESS;
@@ -1891,8 +1918,20 @@ Reporting_RCBWriteAccessHandler(MmsMapping* self, ReportControl* rc, char* eleme
     ClientConnection clientConnection = private_IedServer_getClientConnectionByHandle(self->iedServer, connection);
 
     /* check if write access to RCB is allowed on this connection */
-    if (self->rcbAccessHandler) {
-        if (self->rcbAccessHandler(self->rcbAccessHandlerParameter, rc->rcb, clientConnection, RCB_EVENT_SET_PARAMETER) == false) {
+    if (self->controlBlockAccessHandler)
+    {
+        ACSIClass acsiClass;
+
+        if (rc->rcb->buffered)
+            acsiClass = ACSI_CLASS_BRCB;
+        else
+            acsiClass = ACSI_CLASS_URCB;
+
+        LogicalNode* ln = rc->rcb->parent;
+
+        LogicalDevice* ld = (LogicalDevice*)ln->parent;
+
+        if (self->controlBlockAccessHandler(self->controlBlockAccessHandlerParameter, clientConnection, acsiClass, ld, ln, rc->rcb->name, elementName, IEC61850_CB_ACCESS_TYPE_WRITE) == false) {
             retVal = DATA_ACCESS_ERROR_OBJECT_ACCESS_DENIED;
 
             goto exit_function_only_tracking;
@@ -2873,13 +2912,14 @@ enqueueReport(ReportControl* reportControl, bool isIntegrity, bool isGI, uint64_
 
     int dataBlockSize = 0;
 
-    if (isIntegrity || isGI) {
-
+    if (isIntegrity || isGI)
+    {
         DataSetEntry* dataSetEntry = reportControl->dataSet->fcdas;
 
         int i;
 
-        for (i = 0; i < inclusionBitStringSize; i++) {
+        for (i = 0; i < inclusionBitStringSize; i++)
+        {
             /* don't need reason for inclusion in GI or integrity report */
 
             int encodedSize;
@@ -2887,7 +2927,8 @@ enqueueReport(ReportControl* reportControl, bool isIntegrity, bool isGI, uint64_
             if (dataSetEntry->value) {
                 encodedSize = MmsValue_encodeMmsData(dataSetEntry->value, NULL, 0, false);
             }
-            else {
+            else
+            {
                 MmsValue _errVal;
                 _errVal.type = MMS_DATA_ACCESS_ERROR;
                 _errVal.value.dataAccessError = DATA_ACCESS_ERROR_OBJECT_VALUE_INVALID;
@@ -2902,17 +2943,19 @@ enqueueReport(ReportControl* reportControl, bool isIntegrity, bool isGI, uint64_
 
         bufferEntrySize += MemoryAllocator_getAlignedSize(sizeof(int) + dataBlockSize); /* add aligned_size(LEN + DATA) */
     }
-    else { /* other trigger reason */
+    else
+    {
+        /* other trigger reason */
         bufferEntrySize += inclusionFieldSize;
 
         int reasonForInclusionSize = 0;
 
         int i;
 
-        for (i = 0; i < inclusionBitStringSize; i++) {
-
-            if (reportControl->inclusionFlags[i] != REPORT_CONTROL_NONE) {
-
+        for (i = 0; i < inclusionBitStringSize; i++)
+        {
+            if (reportControl->inclusionFlags[i] != REPORT_CONTROL_NONE)
+            {
                 reasonForInclusionSize++;
 
                 assert(reportControl->bufferedDataSetValues[i] != NULL);
@@ -2947,13 +2990,15 @@ enqueueReport(ReportControl* reportControl, bool isIntegrity, bool isGI, uint64_
     if (DEBUG_IED_SERVER)
         printf("IED_SERVER: number of reports in report buffer: %i\n", buffer->reportsCount);
 
-    if (buffer->lastEnqueuedReport == NULL) { /* buffer is empty - we start at the beginning of the memory block */
+    if (buffer->lastEnqueuedReport == NULL)
+    {
+        /* buffer is empty - we start at the beginning of the memory block */
         entryBufPos = buffer->memoryBlock;
         buffer->oldestReport = (ReportBufferEntry*) entryBufPos;
         buffer->nextToTransmit = (ReportBufferEntry*) entryBufPos;
     }
-    else {
-
+    else
+    {
         assert(buffer->lastEnqueuedReport != NULL);
         assert(buffer->oldestReport != NULL);
 
@@ -2965,12 +3010,16 @@ enqueueReport(ReportControl* reportControl, bool isIntegrity, bool isGI, uint64_
 
         if (DEBUG_IED_SERVER) printf ("IED_SERVER: Last buffer offset: %i\n", (int) ((uint8_t*) buffer->lastEnqueuedReport - buffer->memoryBlock));
 
-        if (buffer->lastEnqueuedReport == buffer->oldestReport) { /* --> buffer->reportsCount == 1 */
+        if (buffer->lastEnqueuedReport == buffer->oldestReport)
+        {
+            /* --> buffer->reportsCount == 1 */
             assert(buffer->reportsCount == 1);
 
             entryBufPos = (uint8_t*) ((uint8_t*) buffer->lastEnqueuedReport + buffer->lastEnqueuedReport->entryLength);
 
-            if ((entryBufPos + bufferEntrySize) > (buffer->memoryBlock + buffer->memoryBlockSize)) { /* buffer overflow */
+            if ((entryBufPos + bufferEntrySize) > (buffer->memoryBlock + buffer->memoryBlockSize))
+            {
+                /* buffer overflow */
                 entryBufPos = buffer->memoryBlock;
 
 #if (DEBUG_IED_SERVER == 1)
@@ -2984,7 +3033,8 @@ enqueueReport(ReportControl* reportControl, bool isIntegrity, bool isGI, uint64_
                 buffer->oldestReport->next = NULL;
                 buffer->nextToTransmit = NULL;
             }
-            else {
+            else
+            {
                 if (buffer->nextToTransmit == buffer->oldestReport)
                     buffer->nextToTransmit = buffer->lastEnqueuedReport;
 
@@ -2993,17 +3043,22 @@ enqueueReport(ReportControl* reportControl, bool isIntegrity, bool isGI, uint64_
             }
 
         }
-        else if (buffer->lastEnqueuedReport > buffer->oldestReport) {
+        else if (buffer->lastEnqueuedReport > buffer->oldestReport)
+        {
             entryBufPos = (uint8_t*) ((uint8_t*) buffer->lastEnqueuedReport + buffer->lastEnqueuedReport->entryLength);
 
-            if ((entryBufPos + bufferEntrySize) > (buffer->memoryBlock + buffer->memoryBlockSize)) { /* buffer overflow */
+            if ((entryBufPos + bufferEntrySize) > (buffer->memoryBlock + buffer->memoryBlockSize))
+            {
+                /* buffer overflow */
                 entryBufPos = buffer->memoryBlock;
 
                 /* remove old reports until enough space for new entry is available */
-                while ((entryBufPos + bufferEntrySize) > (uint8_t*) buffer->oldestReport) {
+                while ((entryBufPos + bufferEntrySize) > (uint8_t*) buffer->oldestReport)
+                {
                     assert(buffer->oldestReport != NULL);
 
-                    if (buffer->nextToTransmit == buffer->oldestReport) {
+                    if (buffer->nextToTransmit == buffer->oldestReport)
+                    {
                         buffer->nextToTransmit = buffer->oldestReport->next;
                         buffer->isOverflow = true;
                         overflow = true;
@@ -3018,7 +3073,8 @@ enqueueReport(ReportControl* reportControl, bool isIntegrity, bool isGI, uint64_
 
                     buffer->reportsCount--;
 
-                    if (buffer->oldestReport == NULL) {
+                    if (buffer->oldestReport == NULL)
+                    {
                         buffer->oldestReport = (ReportBufferEntry*) entryBufPos;
                         buffer->oldestReport->next = NULL;
                         break;
@@ -3028,14 +3084,18 @@ enqueueReport(ReportControl* reportControl, bool isIntegrity, bool isGI, uint64_
 
             buffer->lastEnqueuedReport->next = (ReportBufferEntry*) entryBufPos;
         }
-        else if (buffer->lastEnqueuedReport < buffer->oldestReport) {
+        else if (buffer->lastEnqueuedReport < buffer->oldestReport)
+        {
             entryBufPos = (uint8_t*) ((uint8_t*) buffer->lastEnqueuedReport + buffer->lastEnqueuedReport->entryLength);
 
-            if ((entryBufPos + bufferEntrySize) > (buffer->memoryBlock + buffer->memoryBlockSize)) { /* buffer overflow */
+            if ((entryBufPos + bufferEntrySize) > (buffer->memoryBlock + buffer->memoryBlockSize)) 
+            {
+                /* buffer overflow */
                 entryBufPos = buffer->memoryBlock;
 
                 /* remove older reports in upper buffer part */
-                while ((uint8_t*) buffer->oldestReport > buffer->memoryBlock) {
+                while ((uint8_t*) buffer->oldestReport > buffer->memoryBlock)
+                {
                     assert(buffer->oldestReport != NULL);
 
                     if (buffer->nextToTransmit == buffer->oldestReport) {
@@ -3055,13 +3115,15 @@ enqueueReport(ReportControl* reportControl, bool isIntegrity, bool isGI, uint64_
                 }
 
                 /* remove older reports in lower buffer part that will be overwritten by new report */
-                while ((entryBufPos + bufferEntrySize) > (uint8_t*) buffer->oldestReport) {
+                while ((entryBufPos + bufferEntrySize) > (uint8_t*) buffer->oldestReport)
+                {
                     if (buffer->oldestReport == NULL)
                         break;
 
                     assert(buffer->oldestReport != NULL);
 
-                    if (buffer->nextToTransmit == buffer->oldestReport) {
+                    if (buffer->nextToTransmit == buffer->oldestReport)
+                    {
                         buffer->nextToTransmit = buffer->oldestReport->next;
                         buffer->isOverflow = true;
                         overflow = true;
@@ -3077,15 +3139,17 @@ enqueueReport(ReportControl* reportControl, bool isIntegrity, bool isGI, uint64_
                     buffer->reportsCount--;
                 }
             }
-            else {
-                while (((entryBufPos + bufferEntrySize) > (uint8_t*) buffer->oldestReport) && ((uint8_t*) buffer->oldestReport != buffer->memoryBlock)) {
-
+            else
+            {
+                while (((entryBufPos + bufferEntrySize) > (uint8_t*) buffer->oldestReport) && ((uint8_t*) buffer->oldestReport != buffer->memoryBlock))
+                {
                     if (buffer->oldestReport == NULL)
                         break;
 
                     assert(buffer->oldestReport != NULL);
 
-                    if (buffer->nextToTransmit == buffer->oldestReport) {
+                    if (buffer->nextToTransmit == buffer->oldestReport)
+                    {
                         buffer->nextToTransmit = buffer->oldestReport->next;
                         buffer->isOverflow = true;
                         overflow = true;
@@ -3116,7 +3180,8 @@ enqueueReport(ReportControl* reportControl, bool isIntegrity, bool isGI, uint64_
 
     entry->timeOfEntry = timeOfEntry;
 
-    if (isBuffered) {
+    if (isBuffered)
+    {
         /* ENTRY_ID is set to system time in ms! */
         uint64_t entryId = timeOfEntry;
 
@@ -3135,7 +3200,8 @@ enqueueReport(ReportControl* reportControl, bool isIntegrity, bool isGI, uint64_
         printf(" at pos %p\n", entryStartPos);
     #endif
 
-        if (reportControl->enabled == false) {
+        if (reportControl->enabled == false)
+        {
 #if (CONFIG_MMS_THREADLESS_STACK != 1)
             Semaphore_wait(reportControl->rcbValuesLock);
 #endif
@@ -3162,7 +3228,8 @@ enqueueReport(ReportControl* reportControl, bool isIntegrity, bool isGI, uint64_
 
     entryBufPos += MemoryAllocator_getAlignedSize(sizeof(ReportBufferEntry));
 
-    if (isIntegrity || isGI) {
+    if (isIntegrity || isGI)
+    {
         DataSetEntry* dataSetEntry = reportControl->dataSet->fcdas;
 
         /* encode LEN */
@@ -3172,12 +3239,13 @@ enqueueReport(ReportControl* reportControl, bool isIntegrity, bool isGI, uint64_
         /* encode DATA */
         int i;
 
-        for (i = 0; i < inclusionBitStringSize; i++) {
-
+        for (i = 0; i < inclusionBitStringSize; i++)
+        {
             if (dataSetEntry->value) {
                 entryBufPos += MmsValue_encodeMmsData(dataSetEntry->value, entryBufPos, 0, true);
             }
-            else {
+            else
+            {
                 MmsValue _errVal;
                 _errVal.type = MMS_DATA_ACCESS_ERROR;
                 _errVal.value.dataAccessError = DATA_ACCESS_ERROR_OBJECT_VALUE_INVALID;
@@ -3187,9 +3255,9 @@ enqueueReport(ReportControl* reportControl, bool isIntegrity, bool isGI, uint64_
 
             dataSetEntry = dataSetEntry->sibling;
         }
-
     }
-    else {
+    else
+    {
         /* encode inclusion bit string */
         inclusionFieldStatic.value.bitString.buf = entryBufPos;
         memset(entryBufPos, 0, inclusionFieldSize);
@@ -3202,10 +3270,10 @@ enqueueReport(ReportControl* reportControl, bool isIntegrity, bool isGI, uint64_
         /* encode DATA */
         int i;
 
-        for (i = 0; i < inclusionBitStringSize; i++) {
-
-            if (reportControl->inclusionFlags[i] != REPORT_CONTROL_NONE) {
-
+        for (i = 0; i < inclusionBitStringSize; i++)
+        {
+            if (reportControl->inclusionFlags[i] != REPORT_CONTROL_NONE)
+            {
                 /* update inclusion bit string for report entry */
                 MmsValue_setBitStringBit(inclusionField, i, true);
 
@@ -3213,13 +3281,14 @@ enqueueReport(ReportControl* reportControl, bool isIntegrity, bool isGI, uint64_
 
                 entryBufPos += MmsValue_encodeMmsData(reportControl->bufferedDataSetValues[i], entryBufPos, 0, true);
             }
-
         }
 
         /* encode REASON */
-        for (i = 0; i < inclusionBitStringSize; i++) {
+        for (i = 0; i < inclusionBitStringSize; i++)
+        {
 
-            if (reportControl->inclusionFlags[i] != REPORT_CONTROL_NONE) {
+            if (reportControl->inclusionFlags[i] != REPORT_CONTROL_NONE)
+            {
                 *entryBufPos = (uint8_t) reportControl->inclusionFlags[i];
                 entryBufPos ++;
             }
@@ -3248,10 +3317,12 @@ exit_function:
     Semaphore_post(buffer->lock);
 #endif
 
-    if (reportControl->server) {
+    if (reportControl->server)
+    {
         MmsMapping* mmsMapping = reportControl->server->mmsMapping;
 
-        if (mmsMapping->rcbEventHandler) {
+        if (mmsMapping->rcbEventHandler)
+        {
             if (overflow) {
                 mmsMapping->rcbEventHandler(mmsMapping->rcbEventHandlerParameter, reportControl->rcb, NULL, RCB_EVENT_OVERFLOW, NULL, DATA_ACCESS_ERROR_SUCCESS);
             }
@@ -3942,11 +4013,12 @@ Reporting_activateBufferedReports(MmsMapping* self)
 static void
 processEventsForReport(ReportControl* rc, uint64_t currentTimeInMs)
 {
-    if ((rc->enabled) || (rc->isBuffering)) {
-
-        if (rc->triggerOps & TRG_OPT_GI) {
-            if (rc->gi) {
-
+    if ((rc->enabled) || (rc->isBuffering))
+    {
+        if (rc->triggerOps & TRG_OPT_GI)
+        {
+            if (rc->gi)
+            {
                 /* send current events in event buffer before GI report */
                 if (rc->triggered) {
                     rc->triggered = false;
@@ -3961,12 +4033,12 @@ processEventsForReport(ReportControl* rc, uint64_t currentTimeInMs)
             }
         }
 
-        if (rc->triggerOps & TRG_OPT_INTEGRITY) {
-
-            if (rc->intgPd > 0) {
-
-                if (currentTimeInMs >= rc->nextIntgReportTime) {
-
+        if (rc->triggerOps & TRG_OPT_INTEGRITY)
+        {
+            if (rc->intgPd > 0)
+            {
+                if (currentTimeInMs >= rc->nextIntgReportTime)
+                {
                     /* send current events in event buffer before integrity report */
                     if (rc->triggered) {
                         enqueueReport(rc, false, false, currentTimeInMs);
@@ -3981,8 +4053,8 @@ processEventsForReport(ReportControl* rc, uint64_t currentTimeInMs)
                     }
 
                     /* check for system time change effects */
-                    if ((rc->nextIntgReportTime < currentTimeInMs) || (rc->nextIntgReportTime > currentTimeInMs + rc->intgPd)) {
-
+                    if ((rc->nextIntgReportTime < currentTimeInMs) || (rc->nextIntgReportTime > currentTimeInMs + rc->intgPd))
+                    {
                         if (rc->server->syncIntegrityReportTimes) {
                             rc->nextIntgReportTime = getNextRoundedStartTime(currentTimeInMs, rc->intgPd);
                         }
@@ -3995,9 +4067,11 @@ processEventsForReport(ReportControl* rc, uint64_t currentTimeInMs)
 
                     rc->triggered = false;
                 }
-                else {
+                else
+                {
                     /* check for system time change effects */
-                    if ((rc->nextIntgReportTime < currentTimeInMs) || (rc->nextIntgReportTime > currentTimeInMs + rc->intgPd)) {
+                    if ((rc->nextIntgReportTime < currentTimeInMs) || (rc->nextIntgReportTime > currentTimeInMs + rc->intgPd))
+                    {
                         if (rc->server->syncIntegrityReportTimes) {
                             rc->nextIntgReportTime = getNextRoundedStartTime(currentTimeInMs, rc->intgPd);
                         }
@@ -4009,9 +4083,10 @@ processEventsForReport(ReportControl* rc, uint64_t currentTimeInMs)
             }
         }
 
-        if (rc->triggered) {
-            if (currentTimeInMs >= rc->reportTime) {
-
+        if (rc->triggered)
+        {
+            if (currentTimeInMs >= rc->reportTime)
+            {
                 enqueueReport(rc, false, false, currentTimeInMs);
 
                 rc->triggered = false;
@@ -4027,11 +4102,12 @@ Reporting_processReportEvents(MmsMapping* self, uint64_t currentTimeInMs)
     Semaphore_wait(self->isModelLockedMutex);
 #endif
 
-    if (self->isModelLocked == false) {
-
+    if (self->isModelLocked == false)
+    {
         LinkedList element = self->reportControls;
 
-        while ((element = LinkedList_getNext(element)) != NULL ) {
+        while ((element = LinkedList_getNext(element)) != NULL )
+        {
             ReportControl* rc = (ReportControl*) element->data;
 
             ReportControl_lockNotify(rc);
@@ -4055,11 +4131,12 @@ Reporting_sendReports(MmsMapping* self, MmsServerConnection connection)
 {
     LinkedList element = LinkedList_getNext(self->reportControls);
 
-    while (element) {
+    while (element)
+    {
         ReportControl* rc = (ReportControl*) LinkedList_getData(element);
 
-        if (rc->clientConnection == connection) {
-
+        if (rc->clientConnection == connection)
+        {
             ReportControl_lockNotify(rc);
 
             if (rc->enabled) {
@@ -4086,8 +4163,10 @@ static void
 copyValuesToReportBuffer(ReportControl* self)
 {
     int i;
-    for (i = 0; i < self->dataSet->elementCount; i++) {
-        if (self->inclusionFlags[i] & REPORT_CONTROL_NOT_UPDATED) {
+    for (i = 0; i < self->dataSet->elementCount; i++)
+    {
+        if (self->inclusionFlags[i] & REPORT_CONTROL_NOT_UPDATED)
+        {
             copySingleValueToReportBuffer(self, i);
 
             /* clear not-updated flag */
@@ -4104,13 +4183,14 @@ Reporting_processReportEventsAfterUnlock(MmsMapping* self)
 
     uint64_t currentTime = Hal_getTimeInMs();
 
-    while ((element = LinkedList_getNext(element)) != NULL ) {
+    while ((element = LinkedList_getNext(element)) != NULL )
+    {
         ReportControl* rc = (ReportControl*) element->data;
 
         ReportControl_lockNotify(rc);
 
-        if ((rc->enabled) || (rc->isBuffering)) {
-
+        if ((rc->enabled) || (rc->isBuffering))
+        {
             if (rc->triggered) {
                 copyValuesToReportBuffer(rc);
 
@@ -4128,10 +4208,13 @@ ReportControl_valueUpdated(ReportControl* self, int dataSetEntryIndex, int flag,
 {
     ReportControl_lockNotify(self);
 
-    if (self->inclusionFlags[dataSetEntryIndex] & flag) { /* report for this data set entry is already pending (bypass BufTm) */
+    if (self->inclusionFlags[dataSetEntryIndex] & flag)
+    {
+        /* report for this data set entry is already pending (bypass BufTm and send report immediately) */
         self->reportTime = Hal_getTimeInMs();
 
-        if (modelLocked) {
+        if (modelLocked)
+        {
             /* buffer all relevant values */
             copyValuesToReportBuffer(self);
         }
@@ -4139,19 +4222,21 @@ ReportControl_valueUpdated(ReportControl* self, int dataSetEntryIndex, int flag,
         processEventsForReport(self, self->reportTime);
     }
 
-    if (modelLocked) {
+    if (modelLocked)
+    {
         /* set flag to update values when report is to be sent or data model unlocked */
         self->inclusionFlags[dataSetEntryIndex] = self->inclusionFlags[dataSetEntryIndex] | flag | REPORT_CONTROL_NOT_UPDATED;
-
     }
-    else {
+    else
+    {
         self->inclusionFlags[dataSetEntryIndex] = flag;
 
         /* buffer value for report */
         copySingleValueToReportBuffer(self, dataSetEntryIndex);
     }
 
-    if (self->triggered == false) {
+    if (self->triggered == false)
+    {
         uint64_t currentTime = Hal_getTimeInMs();
 
         MmsValue_setBinaryTime(self->timeOfEntry, currentTime);
@@ -4180,7 +4265,8 @@ ReportControlBlock_getRptEna(ReportControlBlock* self)
 char*
 ReportControlBlock_getRptID(ReportControlBlock* self)
 {
-    if (self->trgOps & 64) {
+    if (self->trgOps & 64)
+    {
         ReportControl* rc = (ReportControl*)(self->sibling);
 
 #if (CONFIG_MMS_THREADLESS_STACK != 1)

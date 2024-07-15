@@ -130,16 +130,22 @@ mmsServer_handleDeleteNamedVariableListRequest(MmsServerConnection connection,
 		goto exit_function;
 	}
 
-	if ((mmsPdu->present == MmsPdu_PR_confirmedRequestPdu) &&
-		(mmsPdu->choice.confirmedRequestPdu.confirmedServiceRequest.present
-		== ConfirmedServiceRequest_PR_deleteNamedVariableList))
-	{
-		request = &(mmsPdu->choice.confirmedRequestPdu.confirmedServiceRequest.choice.deleteNamedVariableList);
-	}
-	else {
-		mmsMsg_createMmsRejectPdu(&invokeId, MMS_ERROR_REJECT_INVALID_PDU, response);
-		goto exit_function;
-	}
+    if ((mmsPdu->present == MmsPdu_PR_confirmedRequestPdu) &&
+        (mmsPdu->choice.confirmedRequestPdu.confirmedServiceRequest.present
+        == ConfirmedServiceRequest_PR_deleteNamedVariableList))
+    {
+        request = &(mmsPdu->choice.confirmedRequestPdu.confirmedServiceRequest.choice.deleteNamedVariableList);
+    }
+    else {
+        mmsMsg_createMmsRejectPdu(&invokeId, MMS_ERROR_REJECT_INVALID_PDU, response);
+        goto exit_function;
+    }
+
+    if (request->listOfVariableListName == NULL)
+    {
+        mmsMsg_createMmsRejectPdu(&invokeId, MMS_ERROR_REJECT_INVALID_PDU, response);
+        goto exit_function;
+    }
  
 	long scopeOfDelete = DeleteNamedVariableListRequest__scopeOfDelete_specific;
 
@@ -675,7 +681,8 @@ createGetNamedVariableListAttributesResponse(int invokeId, ByteBuffer* response,
 	LinkedList variable = LinkedList_getNext(variables);
 
 	int i;
-	for (i = 0; i < variableCount; i++) {
+	for (i = 0; i < variableCount; i++)
+	{
 		MmsNamedVariableListEntry variableEntry = (MmsNamedVariableListEntry) variable->data;
 
 		varListResponse->listOfVariable.list.array[i] =  (struct GetNamedVariableListAttributesResponse__listOfVariable__Member*) 
@@ -740,8 +747,8 @@ mmsServer_handleGetNamedVariableListAttributesRequest(
 		goto exit_function;
 	}
 
-	if (request->present == ObjectName_PR_domainspecific) {
-
+	if (request->present == ObjectName_PR_domainspecific)
+	{
 		char domainName[65];
 		char itemName[65];
 
@@ -761,11 +768,12 @@ mmsServer_handleGetNamedVariableListAttributesRequest(
 
 		MmsDomain* domain = MmsDevice_getDomain(mmsDevice, domainName);
 
-		if (domain != NULL) {
+		if (domain != NULL)
+		{
 			MmsNamedVariableList varList = MmsDomain_getNamedVariableList(domain, itemName);
 
-			if (varList) {
-
+			if (varList)
+			{
 				MmsError accessError = mmsServer_callVariableListChangedHandler(MMS_VARLIST_GET_DIRECTORY, MMS_DOMAIN_SPECIFIC, domain, varList->name, connection);
 
 				if (accessError == MMS_ERROR_NONE) {
@@ -792,8 +800,8 @@ mmsServer_handleGetNamedVariableListAttributesRequest(
 
 	}
 #if (MMS_DYNAMIC_DATA_SETS == 1)
-	else if (request->present == ObjectName_PR_aaspecific) {
-
+	else if (request->present == ObjectName_PR_aaspecific)
+	{
 		char listName[65];
 
 		if (request->choice.aaspecific.size > 64) {
@@ -806,11 +814,12 @@ mmsServer_handleGetNamedVariableListAttributesRequest(
 
 		MmsNamedVariableList varList = MmsServerConnection_getNamedVariableList(connection, listName);
 
-		if (varList) {
-			
+		if (varList)
+		{
 			MmsError accessError = mmsServer_callVariableListChangedHandler(MMS_VARLIST_GET_DIRECTORY, MMS_ASSOCIATION_SPECIFIC, NULL, varList->name, connection);
 
-			if (accessError == MMS_ERROR_NONE) {
+			if (accessError == MMS_ERROR_NONE)
+			{
 				if (createGetNamedVariableListAttributesResponse(invokeId, response, varList) == false) {
 
 					/* encoding failed - probably because buffer size is too small for message */
@@ -829,7 +838,8 @@ mmsServer_handleGetNamedVariableListAttributesRequest(
 			mmsMsg_createServiceErrorPdu(invokeId, response, MMS_ERROR_ACCESS_OBJECT_NON_EXISTENT);
 	}
 #endif /* (MMS_DYNAMIC_DATA_SETS == 1) */
-	else if (request->present == ObjectName_PR_vmdspecific) {
+	else if (request->present == ObjectName_PR_vmdspecific)
+	{
 		char listName[65];
 
 		if (request->choice.vmdspecific.size > 64) {
@@ -844,11 +854,12 @@ mmsServer_handleGetNamedVariableListAttributesRequest(
 
 		MmsNamedVariableList varList = mmsServer_getNamedVariableListWithName(mmsDevice->namedVariableLists, listName);
 
-		if (varList) {
-
+		if (varList)
+		{
 			MmsError accessError = mmsServer_callVariableListChangedHandler(MMS_VARLIST_GET_DIRECTORY, MMS_VMD_SPECIFIC, NULL, varList->name, connection);
 
-			if (accessError == MMS_ERROR_NONE) {
+			if (accessError == MMS_ERROR_NONE)
+			{
 				if (createGetNamedVariableListAttributesResponse(invokeId, response, varList) == false) {
 
 					/* encoding failed - probably because buffer size is too small for message */
@@ -868,6 +879,12 @@ mmsServer_handleGetNamedVariableListAttributesRequest(
 	}
 	else {
 		mmsMsg_createServiceErrorPdu(invokeId, response, MMS_ERROR_ACCESS_OBJECT_ACCESS_UNSUPPORTED);
+	}
+
+	if (ByteBuffer_getSize(response) > connection->maxPduSize)
+	{
+		ByteBuffer_setSize(response, 0);
+		mmsMsg_createServiceErrorPdu(invokeId, response, MMS_ERROR_RESOURCE_OTHER);
 	}
 
 exit_function:

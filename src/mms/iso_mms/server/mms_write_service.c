@@ -517,33 +517,36 @@ getComponent(MmsServerConnection connection, MmsDomain* domain, AlternateAccess_
 {
     MmsVariableSpecification* retValue = NULL;
 
-    if (mmsServer_isComponentAccess(alternateAccess)) {
+    if (mmsServer_isComponentAccess(alternateAccess))
+    {
         Identifier_t component =
                 alternateAccess->list.array[0]->choice.unnamed->choice.selectAccess.choice.component;
 
         if (component.size > 129)
             goto exit_function;
 
-        if (namedVariable->type == MMS_STRUCTURE) {
-
+        if (namedVariable->type == MMS_STRUCTURE)
+        {
             int i;
 
-            for (i = 0; i < namedVariable->typeSpec.structure.elementCount; i++) {
-
+            for (i = 0; i < namedVariable->typeSpec.structure.elementCount; i++)
+            {
                 if ((int) strlen(namedVariable->typeSpec.structure.elements[i]->name)
-                        == component.size) {
+                        == component.size)
+                {
                     if (!strncmp(namedVariable->typeSpec.structure.elements[i]->name,
                             (char*) component.buf, component.size))
                     {
-                        if (strlen(variableName) + component.size < 199) {
-
+                        if (strlen(variableName) + component.size < 199)
+                        {
                             StringUtils_appendString(variableName, 200, "$");
 
                             /* here we need strncat because component.buf is not null terminated! */
                             strncat(variableName, (const char*)component.buf, (size_t)component.size);
 
                             if (alternateAccess->list.array[0]->choice.unnamed->choice.selectAlternateAccess.alternateAccess
-                                    != NULL) {
+                                    != NULL)
+                            {
                                 retValue =
                                         getComponent(connection, domain,
                                                 alternateAccess->list.array[0]->choice.unnamed->choice.selectAlternateAccess.alternateAccess,
@@ -598,12 +601,13 @@ mmsServer_handleWriteRequest(
 
     MmsServer_lockModel(connection->server);
 
-    if (writeRequest->variableAccessSpecification.present == VariableAccessSpecification_PR_variableListName) {
+    if (writeRequest->variableAccessSpecification.present == VariableAccessSpecification_PR_variableListName)
+    {
         handleWriteNamedVariableListRequest(connection, writeRequest, invokeId, response);
         goto exit_function;
     }
-    else if (writeRequest->variableAccessSpecification.present == VariableAccessSpecification_PR_listOfVariable) {
-
+    else if (writeRequest->variableAccessSpecification.present == VariableAccessSpecification_PR_listOfVariable)
+    {
         int numberOfWriteItems = writeRequest->variableAccessSpecification.choice.listOfVariable.list.count;
 
         if (numberOfWriteItems < 1) {
@@ -627,7 +631,8 @@ mmsServer_handleWriteRequest(
 
         int i;
 
-        for (i = 0; i < numberOfWriteItems; i++) {
+        for (i = 0; i < numberOfWriteItems; i++)
+        {
             ListOfVariableSeq_t* varSpec =
                     writeRequest->variableAccessSpecification.choice.listOfVariable.list.array[i];
 
@@ -644,7 +649,8 @@ mmsServer_handleWriteRequest(
 
             char nameIdStr[65];
 
-            if (varSpec->variableSpecification.choice.name.present == ObjectName_PR_domainspecific) {
+            if (varSpec->variableSpecification.choice.name.present == ObjectName_PR_domainspecific)
+            {
                 Identifier_t domainId = varSpec->variableSpecification.choice.name.choice.domainspecific.domainId;
 
                 char domainIdStr[65];
@@ -687,8 +693,8 @@ mmsServer_handleWriteRequest(
 
             AlternateAccess_t* alternateAccess = varSpec->alternateAccess;
 
-            if (alternateAccess != NULL) {
-
+            if (alternateAccess)
+            {
                 if ((variable->type == MMS_STRUCTURE) && (mmsServer_isComponentAccess(alternateAccess) == false)) {
                     accessResults[i] = DATA_ACCESS_ERROR_OBJECT_ATTRIBUTE_INCONSISTENT;
                     continue;
@@ -714,12 +720,13 @@ mmsServer_handleWriteRequest(
                 continue;
             }
 
-            if (alternateAccess != NULL) {
-
+            if (alternateAccess)
+            {
                 if (domain == NULL)
                     domain = (MmsDomain*) device;
 
-                if (mmsServer_isIndexAccess(alternateAccess)) {
+                if (mmsServer_isIndexAccess(alternateAccess))
+                {
                     MmsValue* cachedArray = MmsServer_getValueFromCache(connection->server, domain, nameIdStr);
 
                     if (cachedArray == NULL) {
@@ -730,8 +737,8 @@ mmsServer_handleWriteRequest(
                     int index = mmsServer_getLowIndex(alternateAccess);
                     int numberOfElements = mmsServer_getNumberOfElements(alternateAccess);
 
-                    if (numberOfElements == 0) { /* select single array element with index */
-
+                    if (numberOfElements == 0) /* select single array element with index */
+                    {
                         MmsValue* elementValue = MmsValue_getElement(cachedArray, index);
 
                         if (elementValue == NULL) {
@@ -739,34 +746,45 @@ mmsServer_handleWriteRequest(
                             goto end_of_main_loop;
                         }
 
-                        if (mmsServer_isAccessToArrayComponent(alternateAccess)) {
+                        if (mmsServer_isAccessToArrayComponent(alternateAccess))
+                        {
                             MmsVariableSpecification* namedVariable = MmsDomain_getNamedVariable(domain, nameIdStr);
 
+                            char componentId[65];
+                            componentId[0] = 0;
+
                             if (namedVariable) {
-                                elementValue = mmsServer_getComponentOfArrayElement(alternateAccess, namedVariable, elementValue);
+                                elementValue = mmsServer_getComponentOfArrayElement(alternateAccess, namedVariable, elementValue, componentId);
                             }
 
                             if ((namedVariable == NULL) || (elementValue == NULL)) {
                                 accessResults[i] = DATA_ACCESS_ERROR_OBJECT_NONE_EXISTENT;
-                                goto end_of_main_loop;
                             }
-                        }
+                            else
+                            {
+                                accessResults[i] = mmsServer_setValueEx(connection->server, domain, nameIdStr, value, connection, index, componentId);
+                            }
 
-                        if (MmsValue_update(elementValue, value) == false) {
-                            accessResults[i] = DATA_ACCESS_ERROR_TYPE_INCONSISTENT;
+                            goto end_of_main_loop;
+                        }
+                        else
+                        {
+                            accessResults[i] = mmsServer_setValueEx(connection->server, domain, nameIdStr, value, connection, index, NULL);
                             goto end_of_main_loop;
                         }
                     }
-                    else { /* select sub-array with start-index and number-of-elements */
-
-                        if (MmsValue_getType(value) != MMS_ARRAY) {
+                    else /* select sub-array with start-index and number-of-elements */
+                    {
+                        if (MmsValue_getType(value) != MMS_ARRAY)
+                        {
                             accessResults[i] = DATA_ACCESS_ERROR_TYPE_INCONSISTENT;
                             goto end_of_main_loop;
                         }
 
                         int elementNo;
 
-                        for (elementNo = 0; elementNo < numberOfElements; elementNo++) {
+                        for (elementNo = 0; elementNo < numberOfElements; elementNo++)
+                        {
                             MmsValue* newElement = MmsValue_getElement(value, elementNo);
                             MmsValue* elementValue = MmsValue_getElement(cachedArray, index++);
 
@@ -785,35 +803,36 @@ mmsServer_handleWriteRequest(
                     accessResults[i] = DATA_ACCESS_ERROR_SUCCESS;
                     goto end_of_main_loop;
                 }
-                else if (mmsServer_isComponentAccess(alternateAccess)) {
+                else if (mmsServer_isComponentAccess(alternateAccess))
+                {
                     variable = getComponent(connection, domain, alternateAccess, variable, nameIdStr);
 
-                    if (variable == NULL) {
+                    if (variable == NULL)
+                    {
                         accessResults[i] = DATA_ACCESS_ERROR_OBJECT_NONE_EXISTENT;
                         goto end_of_main_loop;
                     }
                 }
-                else {
+                else
+                {
                     accessResults[i] = DATA_ACCESS_ERROR_SUCCESS;
                     goto end_of_main_loop;
                 }
             }
 
             /* Check for correct type */
-            if (MmsVariableSpecification_isValueOfType(variable, value) == false) {
+            if (MmsVariableSpecification_isValueOfType(variable, value) == false)
+            {
                 accessResults[i] = DATA_ACCESS_ERROR_TYPE_INCONSISTENT;
                 goto end_of_main_loop;
             }
 
-            MmsDataAccessError valueIndication =
-                    mmsServer_setValue(connection->server, domain, nameIdStr, value, connection);
-
-            if (valueIndication == DATA_ACCESS_ERROR_NO_RESPONSE)
-                sendResponse = false;
-
-            accessResults[i] = valueIndication;
+            accessResults[i] = mmsServer_setValue(connection->server, domain, nameIdStr, value, connection);
 
             end_of_main_loop:
+
+            if (accessResults[i] == DATA_ACCESS_ERROR_NO_RESPONSE)
+                sendResponse = false;
 
             MmsValue_delete(value);
         }

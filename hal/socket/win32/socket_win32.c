@@ -749,6 +749,7 @@ int
 UdpSocket_receiveFrom(UdpSocket self, char* address, int maxAddrSize, uint8_t* msg, int msgSize)
 {
     struct sockaddr_storage remoteAddress;
+    memset(&remoteAddress, 0, sizeof(struct sockaddr_storage));
     socklen_t structSize = sizeof(struct sockaddr_storage);
 
     int result = recvfrom(self->fd, (char*) msg, msgSize, 0, (struct sockaddr*)&remoteAddress, &structSize);

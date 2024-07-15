@@ -81,9 +81,10 @@ struct sIedServer
 
     uint8_t timeQuality; /* user settable time quality for internally updated times */
 
+    bool ignoreReadAccess; /* when true don't answer read request (for test purposes) */
+
     bool running;
 };
-
 
 LIB61850_INTERNAL IEC61850_ServiceError
 private_IedServer_convertMmsDataAccessErrorToServiceError(MmsDataAccessError mmsError);

@@ -1,7 +1,7 @@
 /*
  *  iec61850_client.h
  *
- *  Copyright 2013-2021 Michael Zillgith
+ *  Copyright 2013-2023 Michael Zillgith
  *
  *  This file is part of libIEC61850.
  *
@@ -162,12 +162,23 @@ typedef enum {
     /** Received an invalid response message from the server */
     IED_ERROR_MALFORMED_MESSAGE = 34,
 
+    /** Service was not executed because required resource is still in use */
+    IED_ERROR_OBJECT_CONSTRAINT_CONFLICT = 35,
+
     /** Service not implemented */
     IED_ERROR_SERVICE_NOT_IMPLEMENTED = 98,
 
     /** unknown error */
     IED_ERROR_UNKNOWN = 99
 } IedClientError;
+
+/**
+ * \brief Convert error value to string
+ *
+ * \return string constant representing the error
+ */
+LIB61850_API const char*
+IedClientError_toString(IedClientError err);
 
 /**************************************************
  * Connection creation and destruction
@@ -254,6 +265,16 @@ IedConnection_setLocalAddress(IedConnection self, const char* localIpAddress, in
  */
 LIB61850_API void
 IedConnection_setConnectTimeout(IedConnection self, uint32_t timeoutInMs);
+
+/**
+ * \brief Set the maximum number outstanding calls allowed for this connection
+ *
+ * \param self the connection object
+ * \param calling the maximum outstanding calls allowed by the caller (client)
+ * \param called the maximum outstanding calls allowed by the called endpoint (server)
+ */
+LIB61850_API void
+IedConnection_setMaxOutstandingCalls(IedConnection self, int calling, int called);
 
 /**
  * \brief set the request timeout in ms
@@ -1151,15 +1172,6 @@ typedef int ReasonForInclusion;
 /** the reason for inclusion is unknown (e.g. report is not configured to include reason-for-inclusion) */
 #define IEC61850_REASON_UNKNOWN 32
 
-#define REASON_NOT_INCLUDED IEC61850_REASON_NOT_INCLUDED
-#define REASON_DATA_CHANGE IEC61850_REASON_DATA_CHANGE
-#define REASON_QUALITY_CHANGE IEC61850_REASON_QUALITY_CHANGE
-#define REASON_DATA_UPDATE IEC61850_REASON_DATA_UPDATE
-#define REASON_INTEGRITY IEC61850_REASON_INTEGRITY
-#define REASON_GI IEC61850_REASON_GI
-#define REASON_UNKNOWN IEC61850_REASON_UNKNOWN
-
-
 /* Element encoding mask values for ClientReportControlBlock */
 
 /** include the report ID into the setRCB request */
@@ -1256,8 +1268,10 @@ typedef void (*ReportCallbackFunction) (void* parameter, ClientReport report);
  * Otherwise the internal data structures storing the received data set values will not be updated
  * correctly.
  *
- * When replacing a report handler you only have to call this function. There is no separate call to
+ * \note Replacing a report handler you only have to call this function. There is no separate call to
  * IedConnection_uninstallReportHandler() required.
+ *
+ * \note Do not call this function inside of the ReportCallbackFunction. Doing so will cause a deadlock.
  *
  * \param self the connection object
  * \param rcbReference object reference of the report control block
@@ -1272,6 +1286,8 @@ IedConnection_installReportHandler(IedConnection self, const char* rcbReference,
 
 /**
  * \brief uninstall a report handler function for the specified report control block (RCB)
+ *
+ * \note Do not call this function inside of the ReportCallbackFunction. Doing so will cause a deadlock.
  *
  * \param self the connection object
  * \param rcbReference object reference of the report control block
@@ -2466,20 +2482,6 @@ IedConnection_getServerDirectory(IedConnection self, IedClientError* error, bool
  */
 LIB61850_API LinkedList /*<char*>*/
 IedConnection_getLogicalDeviceDirectory(IedConnection self, IedClientError* error, const char* logicalDeviceName);
-
-typedef enum {
-    ACSI_CLASS_DATA_OBJECT,
-    ACSI_CLASS_DATA_SET,
-    ACSI_CLASS_BRCB,
-    ACSI_CLASS_URCB,
-    ACSI_CLASS_LCB,
-    ACSI_CLASS_LOG,
-    ACSI_CLASS_SGCB,
-    ACSI_CLASS_GoCB,
-    ACSI_CLASS_GsCB,
-    ACSI_CLASS_MSVCB,
-    ACSI_CLASS_USVCB
-} ACSIClass;
 
 /**
  * \brief returns a list of all MMS variables that are children of the given logical node

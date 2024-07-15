@@ -171,9 +171,12 @@ MmsValue_decodeMmsData(uint8_t* buffer, int bufPos, int bufferLength, int* endBu
     if (bufPos < 0)
         goto exit_with_error;
 
-    /* if not indefinite length end tag, data length must be > 0 */
-    if ((tag != 0) && (dataLength == 0))
-        goto exit_with_error;
+    /* if not indefinite length end tag, visible-string, mms-string, or octet-string, data length must be > 0 */
+    if (tag != 0)
+    {
+        if (tag != 0x8a && tag != 0x90 && tag != 0x89 && dataLength == 0)
+            goto exit_with_error;
+    }
 
     switch (tag) {
 
@@ -192,8 +195,8 @@ MmsValue_decodeMmsData(uint8_t* buffer, int bufPos, int bufferLength, int* endBu
 
         int i;
 
-        for (i = 0; i < elementCount; i++) {
-
+        for (i = 0; i < elementCount; i++)
+        {
             int elementLength;
 
             int newBufPos = BerDecoder_decodeLength(buffer, &elementLength, bufPos + 1, dataEndBufPos);
@@ -304,7 +307,8 @@ MmsValue_decodeMmsData(uint8_t* buffer, int bufPos, int bufferLength, int* endBu
         break;
 
     case 0x91: /* MMS_UTC_TIME */
-        if (dataLength == 8) {
+        if (dataLength == 8)
+        {
             value = MmsValue_newUtcTime(0);
             MmsValue_setUtcTimeByBuffer(value, buffer + bufPos);
             bufPos += dataLength;

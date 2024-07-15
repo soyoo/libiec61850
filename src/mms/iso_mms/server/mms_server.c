@@ -352,6 +352,13 @@ MmsServer_installWriteHandler(MmsServer self, MmsWriteVariableHandler writeHandl
 }
 
 void
+MmsServer_installListAccessHandler(MmsServer self, MmsListAccessHandler listAccessHandler, void* parameter)
+{
+    self->listAccessHandler = listAccessHandler;
+    self->listAccessHandlerParameter = parameter;
+}
+
+void
 MmsServer_installConnectionHandler(MmsServer self, MmsConnectionHandler connectionHandler, void* parameter)
 {
     self->connectionHandler = connectionHandler;
@@ -529,9 +536,10 @@ mmsServer_setValue(MmsServer self, MmsDomain* domain, char* itemId, MmsValue* va
 {
     MmsDataAccessError indication;
 
-    if (self->writeHandler != NULL) {
+    if (self->writeHandler)
+    {
         indication = self->writeHandler(self->writeHandlerParameter, domain,
-                itemId, value, connection);
+                itemId, -1, NULL, value, connection);
     }
     else {
         MmsValue* cachedValue;
@@ -541,7 +549,36 @@ mmsServer_setValue(MmsServer self, MmsDomain* domain, char* itemId, MmsValue* va
 
         cachedValue = MmsServer_getValueFromCache(self, domain, itemId);
 
-        if (cachedValue != NULL) {
+        if (cachedValue) {
+            MmsValue_update(cachedValue, value);
+            indication = DATA_ACCESS_ERROR_SUCCESS;
+        } else
+            indication = DATA_ACCESS_ERROR_OBJECT_VALUE_INVALID;
+    }
+
+    return indication;
+}
+
+MmsDataAccessError
+mmsServer_setValueEx(MmsServer self, MmsDomain* domain, char* itemId, MmsValue* value,
+        MmsServerConnection connection, int arrayIdx, const char* componentId)
+{
+    MmsDataAccessError indication;
+
+    if (self->writeHandler)
+    {
+        indication = self->writeHandler(self->writeHandlerParameter, domain,
+                itemId, arrayIdx, componentId, value, connection);
+    }
+    else {
+        MmsValue* cachedValue = NULL;
+
+        if (domain == NULL)
+            domain = (MmsDomain*) self->device;
+
+        cachedValue = MmsServer_getValueFromCacheEx2(self, domain, itemId, arrayIdx, componentId);
+
+        if (cachedValue) {
             MmsValue_update(cachedValue, value);
             indication = DATA_ACCESS_ERROR_SUCCESS;
         } else
@@ -577,6 +614,32 @@ mmsServer_getValue(MmsServer self, MmsDomain* domain, char* itemId, MmsServerCon
 
 exit_function:
     return value;
+}
+
+MmsDataAccessError
+mmsServer_checkReadAccess(MmsServer self, MmsDomain* domain, char* itemId, MmsServerConnection connection, bool isDirectAccess)
+{
+    MmsDataAccessError accessError = DATA_ACCESS_ERROR_SUCCESS;
+
+    if (self->readAccessHandler) {
+        accessError =
+                self->readAccessHandler(self->readAccessHandlerParameter, (domain == (MmsDomain*) self->device) ? NULL : domain,
+                        itemId, connection, isDirectAccess);
+    }
+
+    return accessError;
+}
+
+bool
+mmsServer_checkListAccess(MmsServer self, MmsGetNameListType listType, MmsDomain* domain, char* itemId, MmsServerConnection connection)
+{
+    bool allowAccess = true;
+
+    if (self->listAccessHandler) {
+        allowAccess = self->listAccessHandler(self->listAccessHandlerParameter, listType, domain, itemId, connection);
+    }
+
+    return allowAccess;
 }
 
 MmsDevice*

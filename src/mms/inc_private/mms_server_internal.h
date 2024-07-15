@@ -120,6 +120,9 @@ struct sMmsServer {
     MmsWriteVariableHandler writeHandler;
     void* writeHandlerParameter;
 
+    MmsListAccessHandler listAccessHandler;
+    void* listAccessHandlerParameter;
+
     MmsConnectionHandler connectionHandler;
     void* connectionHandlerParameter;
 
@@ -396,7 +399,7 @@ mmsServer_isAccessToArrayComponent(AlternateAccess_t* alternateAccess);
 
 LIB61850_INTERNAL MmsValue*
 mmsServer_getComponentOfArrayElement(AlternateAccess_t* alternateAccess, MmsVariableSpecification* namedVariable,
-        MmsValue* structuredValue);
+        MmsValue* structuredValue, char* componentId);
 
 LIB61850_INTERNAL int
 mmsServer_getLowIndex(AlternateAccess_t* alternateAccess);
@@ -414,6 +417,10 @@ LIB61850_INTERNAL MmsDataAccessError
 mmsServer_setValue(MmsServer self, MmsDomain* domain, char* itemId, MmsValue* value,
         MmsServerConnection connection);
 
+LIB61850_INTERNAL MmsDataAccessError
+mmsServer_setValueEx(MmsServer self, MmsDomain* domain, char* itemId, MmsValue* value,
+        MmsServerConnection connection, int arrayIdx, const char* componentId);
+
 /**
  * \brief Get the current value of a variable in the server data model
  *
@@ -421,6 +428,9 @@ mmsServer_setValue(MmsServer self, MmsDomain* domain, char* itemId, MmsValue* va
  */
 LIB61850_INTERNAL MmsValue*
 mmsServer_getValue(MmsServer self, MmsDomain* domain, char* itemId, MmsServerConnection connection, bool isDirectAccess);
+
+LIB61850_INTERNAL bool
+mmsServer_checkListAccess(MmsServer self, MmsGetNameListType listType, MmsDomain* domain, char* itemId, MmsServerConnection connection);
 
 LIB61850_INTERNAL void
 mmsServer_createMmsWriteResponse(MmsServerConnection connection,

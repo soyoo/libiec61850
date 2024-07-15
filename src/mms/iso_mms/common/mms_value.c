@@ -1463,13 +1463,15 @@ MmsValue_newOctetString(int size, int maxSize)
 {
     MmsValue* self = (MmsValue*) GLOBAL_CALLOC(1, sizeof(MmsValue));
 
-    if (self) {
+    if (self)
+    {
         self->type = MMS_OCTET_STRING;
         self->value.octetString.size = size;
         self->value.octetString.maxSize = maxSize;
         self->value.octetString.buf = (uint8_t*) GLOBAL_CALLOC(1, abs(maxSize));
 
-        if (self->value.octetString.buf == NULL) {
+        if ((maxSize != 0) && (self->value.octetString.buf == NULL))
+        {
             GLOBAL_FREEMEM(self);
             self = NULL;
         }
@@ -1677,14 +1679,16 @@ exit_function:
 }
 
 static void
-setVisibleStringValue(MmsValue* self, const char* string)
+setVisibleStringValue(MmsValue* self, const char* value)
 {
-    if (self->value.visibleString.buf != NULL) {
-        if (string != NULL) {
+    if (self->value.visibleString.buf != NULL)
+    {
+        if (value != NULL)
+        {
+            int newStringSize = strlen(value);
 
-            int newStringSize = strlen(string);
-
-            if (newStringSize > self->value.visibleString.size) {
+            if (newStringSize > self->value.visibleString.size)
+            {
                 GLOBAL_FREEMEM(self->value.visibleString.buf);
                 self->value.visibleString.buf = (char*) GLOBAL_MALLOC(newStringSize + 1);
 
@@ -1694,7 +1698,7 @@ setVisibleStringValue(MmsValue* self, const char* string)
                 self->value.visibleString.size = newStringSize;
             }
 
-            StringUtils_copyStringMax(self->value.visibleString.buf, self->value.visibleString.size + 1, string);
+            StringUtils_copyStringMax(self->value.visibleString.buf, self->value.visibleString.size + 1, value);
         }
         else
             self->value.visibleString.buf[0] = 0;
@@ -1906,7 +1910,8 @@ MmsValue_newStringFromByteArray(const uint8_t* byteArray, int size, MmsType type
 
     self->value.visibleString.buf = StringUtils_createStringFromBuffer(byteArray, size);
 
-    if (self->value.visibleString.buf == NULL) {
+    if (self->value.visibleString.buf == NULL)
+    {
         GLOBAL_FREEMEM(self);
         self = NULL;
     }
@@ -2008,17 +2013,20 @@ MmsValue_createArray(const MmsVariableSpecification* elementType, int size)
     self->value.structure.size = size;
     self->value.structure.components = (MmsValue**) GLOBAL_CALLOC(size, sizeof(MmsValue*));
 
-    if (self->value.structure.components == NULL) {
+    if (self->value.structure.components == NULL)
+    {
         GLOBAL_FREEMEM(self);
         self = NULL;
         goto exit_function;
     }
 
     int i;
-    for (i = 0; i < size; i++) {
+    for (i = 0; i < size; i++)
+    {
         self->value.structure.components[i] = MmsValue_newDefaultValue(elementType);
 
-        if (self->value.structure.components[i] == NULL) {
+        if (self->value.structure.components[i] == NULL)
+        {
             MmsValue_delete(self);
             self = NULL;
             goto exit_function;
@@ -2102,9 +2110,10 @@ MmsValue_setDeletable(MmsValue* self)
 void
 MmsValue_setDeletableRecursive(MmsValue* self)
 {
-    if (self != NULL) {
-
-        if ((MmsValue_getType(self) == MMS_ARRAY) || (MmsValue_getType(self) == MMS_STRUCTURE)) {
+    if (self)
+    {
+        if ((MmsValue_getType(self) == MMS_ARRAY) || (MmsValue_getType(self) == MMS_STRUCTURE))
+        {
             int i;
             int elementCount = MmsValue_getArraySize(self);
 
@@ -2179,7 +2188,8 @@ MmsValue_getTypeString(MmsValue* self)
 const char*
 MmsValue_printToBuffer(const MmsValue* self, char* buffer, int bufferSize)
 {
-    if (self == NULL) {
+    if (self == NULL)
+    {
         StringUtils_copyStringMax(buffer, bufferSize, "(null)");
 
         return buffer;
@@ -2240,7 +2250,8 @@ MmsValue_printToBuffer(const MmsValue* self, char* buffer, int bufferSize)
             int size = MmsValue_getBitStringSize(self);
 
             /* fill buffer with zeros */
-            if (size + 1 > bufferSize) {
+            if (size + 1 > bufferSize)
+            {
                 memset(buffer, 0, bufferSize);
 
                 size = bufferSize - 1;
@@ -2250,7 +2261,8 @@ MmsValue_printToBuffer(const MmsValue* self, char* buffer, int bufferSize)
             }
 
             int i;
-            for (i = 0; i < size; i++) {
+            for (i = 0; i < size; i++)
+            {
                 if (MmsValue_getBitStringBit(self, i))
                     buffer[bufPos++] = '1';
                 else
@@ -2290,7 +2302,8 @@ MmsValue_printToBuffer(const MmsValue* self, char* buffer, int bufferSize)
             int size = MmsValue_getOctetStringSize(self);
             int bufPos = 0;
             int i;
-            for (i = 0; i < size; i++) {
+            for (i = 0; i < size; i++)
+            {
                 snprintf(buffer + bufPos, bufferSize - bufPos, "%02x", self->value.octetString.buf[i]);
                 bufPos += 2;
 
