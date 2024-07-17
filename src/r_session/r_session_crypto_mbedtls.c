@@ -23,7 +23,6 @@
  *  See COPYING file for the complete license text.
  */
 
-
 #include "mbedtls/cipher.h"
 #include "mbedtls/md.h"
 #include "mbedtls/md_internal.h"
@@ -36,6 +35,10 @@
 
 #include "r_session_crypto.h"
 
+#ifndef DEBUG_RSESSION_CRYPTO
+#define DEBUG_RSESSION_CRYPTO 1
+#endif
+
 bool
 RSessionCrypto_createHMAC(uint8_t* buffer, int bufSize, uint8_t* key, int keySize, uint8_t* hmac, int hmacMaxSize)
 {
@@ -47,18 +50,27 @@ RSessionCrypto_createHMAC(uint8_t* buffer, int bufSize, uint8_t* key, int keySiz
 
     mbedtls_md_setup(&md_ctx, md_info, 1);
 
-    if (mbedtls_md_hmac_starts(&md_ctx, key, keySize)) {
-        printf("Error in initializing HMAC\n");
+    if (mbedtls_md_hmac_starts(&md_ctx, key, keySize))
+    {
+        if (DEBUG_RSESSION_CRYPTO)
+            printf("RSESSION_CRYPTO: Error in initializing HMAC\n");
+
         return false;
     }
 
-    if (mbedtls_md_hmac_update(&md_ctx, buffer, bufSize)) {
-        printf("Failed to calculate HMAC\n");
+    if (mbedtls_md_hmac_update(&md_ctx, buffer, bufSize))
+    {
+        if (DEBUG_RSESSION_CRYPTO)
+            printf("RSESSION_CRYPTO: Failed to calculate HMAC\n");
+
         return false;
     }
 
-    if (mbedtls_md_hmac_finish(&md_ctx, hmac)) {
-        printf("Failed to finish HMAC\n");
+    if (mbedtls_md_hmac_finish(&md_ctx, hmac))
+    {
+        if (DEBUG_RSESSION_CRYPTO)
+            printf("RSESSION_CRYPTO: Failed to finish HMAC\n");
+
         return false;
     }
 
@@ -74,14 +86,20 @@ RSessionCrypto_gcmEncryptAndTag(uint8_t* key, int keySize, uint8_t* iv, int ivSi
 
     mbedtls_gcm_init(&gcmCtx);
 
-    if (mbedtls_gcm_setkey(&gcmCtx, MBEDTLS_CIPHER_ID_AES , (const unsigned char*) key, keySize * 8)) {
-        printf("AES-GCM: Failed to set key\n");
+    if (mbedtls_gcm_setkey(&gcmCtx, MBEDTLS_CIPHER_ID_AES , (const unsigned char*) key, keySize * 8))
+    {
+        if (DEBUG_RSESSION_CRYPTO)
+            printf("RSESSION_CRYPTO: AES-GCM: Failed to set key\n");
+
         mbedtls_gcm_free(&gcmCtx);
         return false;
     }
 
-    if (mbedtls_gcm_crypt_and_tag(&gcmCtx, MBEDTLS_GCM_ENCRYPT, (size_t) encryptDataSize, iv, (size_t) ivSize, addData, (size_t) addDataSize, encryptData, encryptData, (size_t)tagSize, tag)) {
-        printf("AES-GCM: Failed to authenticate/encrypt data\n");
+    if (mbedtls_gcm_crypt_and_tag(&gcmCtx, MBEDTLS_GCM_ENCRYPT, (size_t) encryptDataSize, iv, (size_t) ivSize, addData, (size_t) addDataSize, encryptData, encryptData, (size_t)tagSize, tag))
+    {
+        if (DEBUG_RSESSION_CRYPTO)
+            printf("RSESSION_CRYPTO: AES-GCM: Failed to authenticate/encrypt data\n");
+
         mbedtls_gcm_free(&gcmCtx);
         return false;
     }
@@ -98,14 +116,20 @@ RSessionCrypto_gcmAuthAndDecrypt(uint8_t* key, int keySize, uint8_t* iv, int ivS
 
     mbedtls_gcm_init(&gcmCtx);
 
-    if (mbedtls_gcm_setkey(&gcmCtx, MBEDTLS_CIPHER_ID_AES , (const unsigned char*) key, keySize * 8)) {
-        printf("AES-GCM: Failed to set key\n");
+    if (mbedtls_gcm_setkey(&gcmCtx, MBEDTLS_CIPHER_ID_AES , (const unsigned char*) key, keySize * 8))
+    {
+        if (DEBUG_RSESSION_CRYPTO)
+            printf("RSESSION_CRYPTO: AES-GCM: Failed to set key\n");
+
         mbedtls_gcm_free(&gcmCtx);
         return false;
     }
 
-    if (mbedtls_gcm_auth_decrypt(&gcmCtx, (size_t) encryptDataSize, iv, (size_t) ivSize, addData, (size_t) addDataSize, tag, (size_t) tagSize, encryptData, decryptedData)) {
-        printf("AES-GCM: Failed to authentication and decrypt!\n");
+    if (mbedtls_gcm_auth_decrypt(&gcmCtx, (size_t) encryptDataSize, iv, (size_t) ivSize, addData, (size_t) addDataSize, tag, (size_t) tagSize, encryptData, decryptedData))
+    {
+        if (DEBUG_RSESSION_CRYPTO)
+            printf("RSESSION_CRYPTO: AES-GCM: Failed to authentication and decrypt!\n");
+
         mbedtls_gcm_free(&gcmCtx);
         return false;
     }
@@ -128,16 +152,19 @@ RSessionCrypto_createRandomData(uint8_t* data, int dataSize)
     if( ( ret = mbedtls_ctr_drbg_seed( &ctr_drbg, mbedtls_entropy_func, &entropy,
         NULL, 0) ) != 0 )
     {
-        printf( " failed\n ! mbedtls_ctr_drbg_init returned -0x%04x\n", -ret );
+        if (DEBUG_RSESSION_CRYPTO)
+            printf("RSESSION_CRYPTO:  failed! mbedtls_ctr_drbg_init returned -0x%04x\n", -ret);
+
         return false;
     }
 
     if( ( ret = mbedtls_ctr_drbg_random( &ctr_drbg, data, dataSize ) ) != 0 )
     {
-        printf( " failed\n ! mbedtls_ctr_drbg_random returned -0x%04x\n", -ret );
+        if (DEBUG_RSESSION_CRYPTO)
+            printf("RSESSION_CRYPTO:  failed! mbedtls_ctr_drbg_random returned -0x%04x\n", -ret);
+
         return false;
     }
 
     return true;
 }
-
