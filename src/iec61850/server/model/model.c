@@ -707,26 +707,30 @@ ModelNode_getChild(ModelNode* self, const char* name)
     /* check for array separator */
     const char* arraySeparator = strchr(name, '(');
 
-    if (arraySeparator) {
-
+    if (arraySeparator)
+    {
         const char* arraySeparator2 = strchr(arraySeparator, ')');
 
-        if (arraySeparator2) {
+        if (arraySeparator2)
+        {
             int idx = (int) strtol(arraySeparator + 1, NULL, 10);
 
             ModelNode* arrayNode = NULL;
 
-            if (name == arraySeparator) {
+            if (name == arraySeparator)
+            {
                 arrayNode = ModelNode_getChildWithIdx(self, idx);
             }
-            else {
+            else
+            {
                 char nameCopy[65];
 
                 const char* pos = name;
 
                 int cpyIdx = 0;
 
-                while (pos < arraySeparator) {
+                while (pos < arraySeparator)
+                {
                     nameCopy[cpyIdx] = *pos;
                     cpyIdx++;
                     pos++;
@@ -743,18 +747,19 @@ ModelNode_getChild(ModelNode* self, const char* name)
                     return NULL;
             }
 
-            if (arrayNode) {
-
-                if (*(arraySeparator2 + 1) == 0) {
+            if (arrayNode)
+            {
+                if (*(arraySeparator2 + 1) == 0)
+                {
                     return arrayNode;
                 }
-                else {
+                else
+                {
                     if (*(arraySeparator2 + 1) == '.')
                         return ModelNode_getChild(arrayNode, arraySeparator2 + 2);
                     else
                         return ModelNode_getChild(arrayNode, arraySeparator2 + 1);
                 }
-
             }
             else
                 return NULL;
@@ -787,7 +792,8 @@ ModelNode_getChild(ModelNode* self, const char* name)
 
         if (nodeNameLen == nameElementLength)
         {
-            if (memcmp(nextNode->name, name, nodeNameLen) == 0) {
+            if (memcmp(nextNode->name, name, nodeNameLen) == 0)
+            {
                 matchingNode = nextNode;
                 break;
             }
@@ -816,7 +822,8 @@ ModelNode_getChildWithIdx(ModelNode* self, int idx)
 
         while (nextNode)
         {
-            if (currentIdx == idx) {
+            if (currentIdx == idx)
+            {
                 foundElement = nextNode;
                 break;
             }
@@ -855,7 +862,8 @@ ModelNode_getChildWithFc(ModelNode* self, const char* name, FunctionalConstraint
        {
            if (memcmp(nextNode->name, name, nodeNameLen) == 0)
            {
-               if (separator == NULL) {
+               if (separator == NULL)
+               {
                    if (nextNode->modelType == DataAttributeModelType)
                    {
                        DataAttribute* da = (DataAttribute*) nextNode;
@@ -872,7 +880,8 @@ ModelNode_getChildWithFc(ModelNode* self, const char* name, FunctionalConstraint
                    {
                         DataAttribute* da = (DataAttribute*) nextNode;
 
-                        if (da->fc == fc) {
+                        if (da->fc == fc)
+                        {
                           matchingNode = nextNode;
                           break;
                         }
@@ -881,7 +890,6 @@ ModelNode_getChildWithFc(ModelNode* self, const char* name, FunctionalConstraint
                        matchingNode = nextNode;
                        break;
                    }
-
                }
            }
        }

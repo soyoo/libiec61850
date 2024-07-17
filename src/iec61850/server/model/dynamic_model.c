@@ -667,7 +667,8 @@ DataObject_create(const char* name, ModelNode* parent, int arrayElements)
             {
                 DataObject* arrayElement = (DataObject*) GLOBAL_MALLOC(sizeof(DataObject));
 
-                if (arrayElement) {
+                if (arrayElement)
+                {
                     arrayElement->name = NULL;
                     arrayElement->modelType = DataObjectModelType;
                     arrayElement->firstChild = NULL;
