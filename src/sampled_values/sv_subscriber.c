@@ -42,7 +42,8 @@
 
 #define ETH_P_SV 0x88ba
 
-struct sSVReceiver {
+struct sSVReceiver
+{
     bool running;
     bool stopped;
 
@@ -62,7 +63,8 @@ struct sSVReceiver {
 
 };
 
-struct sSVSubscriber {
+struct sSVSubscriber
+{
     uint8_t ethAddr[6];
     uint16_t appId;
 
@@ -70,8 +72,8 @@ struct sSVSubscriber {
     void* listenerParameter;
 };
 
-struct sSVSubscriber_ASDU {
-
+struct sSVSubscriber_ASDU
+{
     char* svId;
     char* datSet;
 
@@ -85,7 +87,6 @@ struct sSVSubscriber_ASDU {
     int dataBufferLength;
     uint8_t* dataBuffer;
 };
-
 
 SVReceiver
 SVReceiver_create(void)
@@ -165,19 +166,19 @@ svReceiverLoop(void* threadParameter)
 
     self->stopped = false;
 
-    while (self->running) {
-            switch (EthernetHandleSet_waitReady(handleSet, 100))
-            {
-            case -1:
-                if (DEBUG_SV_SUBSCRIBER)
-                    printf("SV_SUBSCRIBER: EhtnernetHandleSet_waitReady() failure\n");
-                break;
-            case 0:
-                break;
-            default:
-                SVReceiver_tick(self);
-            }
-
+    while (self->running)
+    {
+        switch (EthernetHandleSet_waitReady(handleSet, 100))
+        {
+        case -1:
+            if (DEBUG_SV_SUBSCRIBER)
+                printf("SV_SUBSCRIBER: EhtnernetHandleSet_waitReady() failure\n");
+            break;
+        case 0:
+            break;
+        default:
+            SVReceiver_tick(self);
+        }
     }
 
     self->stopped = true;
@@ -190,8 +191,8 @@ svReceiverLoop(void* threadParameter)
 void
 SVReceiver_start(SVReceiver self)
 {
-    if (SVReceiver_startThreadless(self)) {
-
+    if (SVReceiver_startThreadless(self))
+    {
         if (DEBUG_SV_SUBSCRIBER)
             printf("SV_SUBSCRIBER: SV receiver started for interface %s\n", self->interfaceId);
 
@@ -199,17 +200,20 @@ SVReceiver_start(SVReceiver self)
 
         self->thread = Thread_create((ThreadExecutionFunction) svReceiverLoop, (void*) self, false);
 
-        if (self->thread) {
+        if (self->thread)
+        {
             Thread_start(self->thread);
         }
-        else {
+        else
+        {
             if (DEBUG_SV_SUBSCRIBER)
                 printf("SV_SUBSCRIBER: Failed to start thread\n");
         }
 
 #endif /* (CONFIG_MMS_THREADLESS_STACK == 0) */
     }
-    else {
+    else
+    {
         if (DEBUG_SV_SUBSCRIBER)
             printf("SV_SUBSCRIBER: Starting SV receiver failed for interface %s\n", self->interfaceId);
     }
@@ -221,15 +225,16 @@ SVReceiver_isRunning(SVReceiver self)
     return self->running;
 }
 
-
 void
 SVReceiver_stop(SVReceiver self)
 {
-    if (self->running) {
+    if (self->running)
+    {
         self->running = false;
 
 #if (CONFIG_MMS_THREADLESS_STACK == 0)
-        if (self->thread) {
+        if (self->thread)
+        {
             Thread_destroy(self->thread);
             self->thread = NULL;
         }
@@ -247,7 +252,7 @@ SVReceiver_destroy(SVReceiver self)
     LinkedList_destroyDeep(self->subscriberList,
             (LinkedListValueDeleteFunction) SVSubscriber_destroy);
 
-    if (self->interfaceId != NULL)
+    if (self->interfaceId)
         GLOBAL_FREEMEM(self->interfaceId);
 
 #if (CONFIG_MMS_THREADLESS_STACK == 0)
@@ -271,8 +276,8 @@ SVReceiver_startThreadless(SVReceiver self)
     else
         self->ethSocket = Ethernet_createSocket(self->interfaceId, NULL);
 
-    if (self->ethSocket) {
-
+    if (self->ethSocket)
+    {
         Ethernet_setProtocolFilter(self->ethSocket, ETH_P_SV);
 
         self->running = true;
@@ -302,19 +307,21 @@ parseASDU(SVReceiver self, SVSubscriber subscriber, uint8_t* buffer, int length)
     struct sSVSubscriber_ASDU asdu;
     memset(&asdu, 0, sizeof(struct sSVSubscriber_ASDU));
 
-    while (bufPos < length) {
+    while (bufPos < length)
+    {
         int elementLength;
 
         uint8_t tag = buffer[bufPos++];
 
         bufPos = BerDecoder_decodeLength(buffer, &elementLength, bufPos, length);
-        if (bufPos < 0) {
+        if (bufPos < 0)
+        {
             if (DEBUG_SV_SUBSCRIBER) printf("SV_SUBSCRIBER: Malformed message: failed to decode BER length tag!\n");
             return;
         }
 
-        switch (tag) {
-
+        switch (tag)
+        {
         case 0x80:
             asdu.svId = (char*) (buffer + bufPos);
             svIdLength = elementLength;
@@ -367,7 +374,8 @@ parseASDU(SVReceiver self, SVSubscriber subscriber, uint8_t* buffer, int length)
     if (asdu.datSet != NULL)
         asdu.datSet[datSetLength] = 0;
     
-    if (DEBUG_SV_SUBSCRIBER) {
+    if (DEBUG_SV_SUBSCRIBER)
+    {
         printf("SV_SUBSCRIBER:   SV ASDU: ----------------\n");
         printf("SV_SUBSCRIBER:     DataLength: %d\n", asdu.dataBufferLength);
         printf("SV_SUBSCRIBER:     SvId: %s\n", asdu.svId);
@@ -390,7 +398,8 @@ parseASDU(SVReceiver self, SVSubscriber subscriber, uint8_t* buffer, int length)
     }
 
     /* Call callback handler */
-    if (subscriber) {
+    if (subscriber)
+    {
         if (subscriber->listener != NULL)
             subscriber->listener(subscriber, subscriber->listenerParameter, &asdu);
     }
@@ -401,18 +410,21 @@ parseSequenceOfASDU(SVReceiver self, SVSubscriber subscriber, uint8_t* buffer, i
 {
     int bufPos = 0;
 
-    while (bufPos < length) {
+    while (bufPos < length)
+    {
         int elementLength;
 
         uint8_t tag = buffer[bufPos++];
 
         bufPos = BerDecoder_decodeLength(buffer, &elementLength, bufPos, length);
-        if (bufPos < 0) {
+        if (bufPos < 0)
+        {
             if (DEBUG_SV_SUBSCRIBER) printf("SV_SUBSCRIBER: Malformed message: failed to decode BER length tag!\n");
             return;
         }
 
-        switch (tag) {
+        switch (tag)
+        {
         case 0x30:
             parseASDU(self, subscriber, buffer + bufPos, elementLength);
             break;
@@ -431,25 +443,29 @@ parseSVPayload(SVReceiver self, SVSubscriber subscriber, uint8_t* buffer, int ap
 {
     int bufPos = 0;
 
-    if (buffer[bufPos++] == 0x60) {
+    if (buffer[bufPos++] == 0x60)
+    {
         int elementLength;
 
         bufPos = BerDecoder_decodeLength(buffer, &elementLength, bufPos, apduLength);
-        if (bufPos < 0) {
+        if (bufPos < 0)
+        {
             if (DEBUG_SV_SUBSCRIBER) printf("SV_SUBSCRIBER: Malformed message: failed to decode BER length tag!\n");
             return;
         }
 
         int svEnd = bufPos + elementLength;
 
-        while (bufPos < svEnd) {
+        while (bufPos < svEnd)
+        {
             uint8_t tag = buffer[bufPos++];
 
             bufPos = BerDecoder_decodeLength(buffer, &elementLength, bufPos, svEnd);
             if (bufPos < 0)
                 goto exit_error;
 
-            switch(tag) {
+            switch(tag)
+            {
             case 0x80: /* noASDU (INTEGER) */
                 /* ignore */
                 break;
@@ -462,7 +478,6 @@ parseSVPayload(SVReceiver self, SVSubscriber subscriber, uint8_t* buffer, int ap
                 if (DEBUG_SV_SUBSCRIBER) printf("SV_SUBSCRIBER: found unknown tag %02x\n", tag);
                 break;
             }
-
 
             bufPos += elementLength;
         }
@@ -493,7 +508,8 @@ parseSVMessage(SVReceiver self, int numbytes)
     int headerLength = 14;
 
     /* check for VLAN tag */
-    if ((buffer[bufPos] == 0x81) && (buffer[bufPos + 1] == 0x00)) {
+    if ((buffer[bufPos] == 0x81) && (buffer[bufPos + 1] == 0x00))
+    {
         bufPos += 4; /* skip VLAN tag */
         headerLength += 4;
     }
@@ -519,13 +535,15 @@ parseSVMessage(SVReceiver self, int numbytes)
 
     int apduLength = length - 8;
 
-    if (numbytes < length + headerLength) {
+    if (numbytes < length + headerLength)
+    {
         if (DEBUG_SV_SUBSCRIBER)
             printf("SV_SUBSCRIBER: Invalid PDU size\n");
         return;
     }
 
-    if (DEBUG_SV_SUBSCRIBER) {
+    if (DEBUG_SV_SUBSCRIBER)
+    {
         printf("SV_SUBSCRIBER: SV message: ----------------\n");
         printf("SV_SUBSCRIBER:   APPID: %u\n", appId);
         printf("SV_SUBSCRIBER:   LENGTH: %u\n", length);
@@ -542,13 +560,16 @@ parseSVMessage(SVReceiver self, int numbytes)
 
     LinkedList element = LinkedList_getNext(self->subscriberList);
 
-    while (element != NULL) {
+    while (element != NULL)
+    {
         SVSubscriber subscriberElem = (SVSubscriber) LinkedList_getData(element);
 
-        if (subscriberElem->appId == appId) {
-
-            if (self->checkDestAddr) {
-                if (memcmp(dstAddr, subscriberElem->ethAddr, 6) == 0) {
+        if (subscriberElem->appId == appId)
+        {
+            if (self->checkDestAddr)
+            {
+                if (memcmp(dstAddr, subscriberElem->ethAddr, 6) == 0)
+                {
                     subscriber = subscriberElem;
                     break;
                 }
@@ -556,11 +577,11 @@ parseSVMessage(SVReceiver self, int numbytes)
                     if (DEBUG_SV_SUBSCRIBER)
                         printf("SV_SUBSCRIBER: Checking ethernet dest address failed!\n");
             }
-            else {
+            else
+            {
                 subscriber = subscriberElem;
                 break;
             }
-
         }
 
         element = LinkedList_getNext(element);
@@ -572,7 +593,8 @@ parseSVMessage(SVReceiver self, int numbytes)
 
     if (subscriber)
         parseSVPayload(self, subscriber, buffer + bufPos, apduLength);
-    else {
+    else
+    {
         if (DEBUG_SV_SUBSCRIBER)
             printf("SV_SUBSCRIBER: SV message ignored due to unknown APPID value or dest address mismatch\n");
     }
@@ -583,7 +605,8 @@ SVReceiver_tick(SVReceiver self)
 {
     int packetSize = Ethernet_receivePacket(self->ethSocket, self->buffer, ETH_BUFFER_LENGTH);
 
-    if (packetSize > 0) {
+    if (packetSize > 0)
+    {
         parseSVMessage(self, packetSize);
         return true;
     }
@@ -596,10 +619,11 @@ SVSubscriber_create(const uint8_t* ethAddr, uint16_t appID)
 {
     SVSubscriber self = (SVSubscriber) GLOBAL_CALLOC(1, sizeof(struct sSVSubscriber));
 
-    if (self != NULL) {
+    if (self != NULL)
+    {
         self->appId = appID;
 
-        if (ethAddr != NULL)
+        if (ethAddr)
             memcpy(self->ethAddr, ethAddr, 6);
     }
 
@@ -613,7 +637,6 @@ SVSubscriber_destroy(SVSubscriber self)
         GLOBAL_FREEMEM(self);
 }
 
-
 void
 SVSubscriber_setListener(SVSubscriber self,  SVUpdateListener listener, void* parameter)
 {
@@ -626,7 +649,6 @@ SVSubscriber_ASDU_getSmpSynch(SVSubscriber_ASDU self)
 {
     return self->smpSynch[0];
 }
-
 
 uint16_t
 SVSubscriber_ASDU_getSmpCnt(SVSubscriber_ASDU self)
