@@ -81,7 +81,7 @@ struct sRSessionPayloadElement
  * \return new RSession instance
  */
 LIB61850_API RSession
-RSession_create();
+RSession_create(void);
 
 /**
  * \brief Set the maximum buffer size for session messages (range: 128 - 65535)

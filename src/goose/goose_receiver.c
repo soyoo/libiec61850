@@ -1159,7 +1159,7 @@ gooseReceiverLoop(void *threadParameter)
 
         EthernetHandleSet_destroy(handleSet);
     }
-#if (CONFIG_IEC61850_R_GOOSE == 0)
+#if (CONFIG_IEC61850_R_GOOSE == 1)
     else if (self->session)
     {
         HandleSet handleSet = Handleset_new();
@@ -1357,13 +1357,16 @@ GooseReceiver_stopThreadless(GooseReceiver self)
     self->running = false;
 }
 
+#if (CONFIG_IEC61850_R_GOOSE == 1)
 static void
 handleSessionPayloadElement(void* parameter, uint16_t appId, uint8_t* payloadData, int payloadSize)
 {
+    (void)appId;
     GooseReceiver self = (GooseReceiver) parameter;
 
     parseGoosePayload(self, payloadData, payloadSize);
 }
+#endif /* (CONFIG_IEC61850_R_GOOSE == 1) */
 
 
 /* call after reception of ethernet frame */

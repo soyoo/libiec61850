@@ -710,13 +710,16 @@ parseSVMessage(SVReceiver self, int numbytes)
     handleSVApdu(self, appId, buffer + bufPos, apduLength, dstAddr);
 }
 
+#if (CONFIG_IEC61850_R_SMV == 1)
 static void
 handleSessionPayloadElement(void* parameter, uint16_t appId, uint8_t* payloadData, int payloadSize)
 {
+    (void)appId;
     SVReceiver self = (SVReceiver) parameter;
 
     handleSVApdu(self, appId, payloadData, payloadSize, NULL);
 }
+#endif /* (CONFIG_IEC61850_R_SMV == 1) */
 
 bool
 SVReceiver_tick(SVReceiver self)
