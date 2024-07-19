@@ -566,7 +566,8 @@ mmsServer_setValue(MmsServer self, MmsDomain* domain, char* itemId, MmsValue* va
         {
             MmsValue_update(cachedValue, value);
             indication = DATA_ACCESS_ERROR_SUCCESS;
-        } else
+        }
+        else
             indication = DATA_ACCESS_ERROR_OBJECT_VALUE_INVALID;
     }
 

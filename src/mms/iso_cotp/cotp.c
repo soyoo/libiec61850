@@ -67,8 +67,8 @@ writeOptions(CotpConnection* self)
     uint8_t* buffer = self->writeBuffer->buffer;
     int bufPos = self->writeBuffer->size;
 
-    if (self->options.tpduSize != 0) {
-
+    if (self->options.tpduSize != 0)
+    {
         if (DEBUG_COTP)
             printf("COTP: send TPDU size: %i\n", CotpConnection_getTpduSize(self));
 
@@ -77,7 +77,8 @@ writeOptions(CotpConnection* self)
         buffer[bufPos++] = self->options.tpduSize;
     }
 
-    if (self->options.tSelDst.size != 0) {
+    if (self->options.tSelDst.size != 0)
+    {
         buffer[bufPos++] = 0xc2;
         buffer[bufPos++] = (uint8_t) self->options.tSelDst.size;
 
@@ -86,7 +87,8 @@ writeOptions(CotpConnection* self)
             buffer[bufPos++] = (uint8_t) self->options.tSelDst.value[i];
     }
 
-    if (self->options.tSelSrc.size != 0) {
+    if (self->options.tSelSrc.size != 0)
+    {
         buffer[bufPos++] = 0xc1;
         buffer[bufPos++] = (uint8_t) self->options.tSelSrc.size;
 
@@ -177,28 +179,32 @@ writeToSocket(CotpConnection* self, uint8_t* buf, int size)
 static bool
 flushBuffer(CotpConnection* self)
 {
-    if (self->socketExtensionBufferFill > 0) {
-
+    if (self->socketExtensionBufferFill > 0)
+    {
         int sentBytes = writeToSocket(self, self->socketExtensionBuffer, self->socketExtensionBufferFill);
 
-        if (sentBytes > 0) {
-
-            if (sentBytes != self->socketExtensionBufferFill) {
+        if (sentBytes > 0)
+        {
+            if (sentBytes != self->socketExtensionBufferFill)
+            {
                 int target = 0;
                 int i;
                 uint8_t* buf = self->socketExtensionBuffer;
 
-                for (i = sentBytes; i < self->socketExtensionBufferFill; i++) {
+                for (i = sentBytes; i < self->socketExtensionBufferFill; i++)
+                {
                     buf[target++] = buf[i];
                 }
 
                 self->socketExtensionBufferFill = self->socketExtensionBufferFill - sentBytes;
             }
-            else {
+            else
+            {
                 self->socketExtensionBufferFill = 0;
             }
         }
-        else if (sentBytes == -1) {
+        else if (sentBytes == -1)
+        {
             return false;
         }
     }
@@ -214,35 +220,40 @@ sendBuffer(CotpConnection* self)
 
     bool retVal = false;
 
-    if (flushBuffer(self) == false) {
+    if (flushBuffer(self) == false)
+    {
         goto exit_function;
     }
 
     int sentBytes = 0;
 
-    if (self->socketExtensionBufferFill == 0) {
+    if (self->socketExtensionBufferFill == 0)
+    {
         sentBytes = writeToSocket(self, buffer, remainingSize);
     }
 
     if (sentBytes == -1)
         goto exit_function;
 
-    if (sentBytes != remainingSize) {
-
+    if (sentBytes != remainingSize)
+    {
         /* write additional data to extension buffer */
-        if (self->socketExtensionBuffer) {
+        if (self->socketExtensionBuffer)
+        {
             uint8_t* extBuf = self->socketExtensionBuffer;
             int extCurrentPos = self->socketExtensionBufferFill;
             int bytesNotSent = remainingSize - sentBytes;
 
             int i;
-            for (i = 0; i < bytesNotSent; i++) {
+            for (i = 0; i < bytesNotSent; i++)
+            {
                 extBuf[i + extCurrentPos] = buffer[sentBytes + i];
             }
 
             self->socketExtensionBufferFill = extCurrentPos + bytesNotSent;
         }
-        else {
+        else
+        {
             goto exit_function;
         }
     }
@@ -264,7 +275,9 @@ CotpConnection_sendDataMessage(CotpConnection* self, BufferChain payload)
 
     int fragmentPayloadSize = CotpConnection_getTpduSize(self) - COTP_DATA_HEADER_SIZE;
 
-    if (payload->length > fragmentPayloadSize) { /* Check if segmentation is required? */
+    if (payload->length > fragmentPayloadSize)
+    {
+        /* Check if segmentation is required? */
         fragments = payload->length / fragmentPayloadSize;
 
         if ((payload->length % fragmentPayloadSize) != 0)
@@ -275,15 +288,18 @@ CotpConnection_sendDataMessage(CotpConnection* self, BufferChain payload)
     int totalSize = (fragments * (COTP_DATA_HEADER_SIZE + 4)) + payload->length;
 
     /* try to flush extension buffer */
-    if (flushBuffer(self) == false) {
+    if (flushBuffer(self) == false)
+    {
         return COTP_ERROR;
     }
 
     /* check if totalSize will fit in extension buffer */
-    if (self->socketExtensionBuffer) {
+    if (self->socketExtensionBuffer)
+    {
         int freeExtBufSize = self->socketExtensionBufferSize - self->socketExtensionBufferFill;
 
-        if (freeExtBufSize < totalSize) {
+        if (freeExtBufSize < totalSize)
+        {
             return COTP_ERROR;
         }
     }
@@ -300,12 +316,15 @@ CotpConnection_sendDataMessage(CotpConnection* self, BufferChain payload)
 
     uint8_t* buffer = self->writeBuffer->buffer;
 
-    while (fragments > 0) {
-        if (fragments > 1) {
+    while (fragments > 0)
+    {
+        if (fragments > 1)
+        {
             currentLimit = currentBufPos + fragmentPayloadSize;
             lastUnit = 0;
         }
-        else {
+        else
+        {
             currentLimit = payload->length;
             lastUnit = 1;
         }
@@ -317,9 +336,10 @@ CotpConnection_sendDataMessage(CotpConnection* self, BufferChain payload)
         int bufPos = 7;
 
         int i;
-        for (i = currentBufPos; i < currentLimit; i++) {
-
-            if (currentChainIndex >= currentChain->partLength) {
+        for (i = currentBufPos; i < currentLimit; i++)
+        {
+            if (currentChainIndex >= currentChain->partLength)
+            {
                 currentChain = currentChain->nextPart;
                 if (DEBUG_COTP)
                     printf("COTP: nextBufferPart: len:%i partLen:%i\n", currentChain->length, currentChain->partLength);
@@ -338,7 +358,8 @@ CotpConnection_sendDataMessage(CotpConnection* self, BufferChain payload)
         if (DEBUG_COTP)
             printf("COTP: Send COTP fragment %i bufpos: %i\n", fragments, currentBufPos);
 
-        if (!sendBuffer(self)) {
+        if (!sendBuffer(self))
+        {
             retValue = COTP_ERROR;
 
             if (DEBUG_COTP)
@@ -438,11 +459,13 @@ parseOptions(CotpConnection* self, uint8_t* buffer, int bufLen)
 {
     int bufPos = 0;
 
-    while (bufPos < bufLen) {
+    while (bufPos < bufLen)
+    {
         uint8_t optionType = buffer[bufPos++];
         uint8_t optionLen = buffer[bufPos++];
 
-        if (optionLen > (bufLen - bufPos)) {
+        if (optionLen > (bufLen - bufPos))
+        {
             if (DEBUG_COTP)
                 printf("COTP: option to long optionLen:%i bufPos:%i bufLen:%i\n", optionLen, bufPos, bufLen);
             goto cpo_error;
@@ -453,7 +476,8 @@ parseOptions(CotpConnection* self, uint8_t* buffer, int bufLen)
 
         switch (optionType) {
         case 0xc0:
-			if (optionLen == 1) {
+			if (optionLen == 1)
+            {
 				int requestedTpduSize = (1 << buffer[bufPos++]);
 
                 CotpConnection_setTpduSize(self, requestedTpduSize);
@@ -466,7 +490,8 @@ parseOptions(CotpConnection* self, uint8_t* buffer, int bufLen)
             break;
 
         case 0xc1: /* remote T-selector */
-            if (optionLen < 5) {
+            if (optionLen < 5)
+            {
                 self->options.tSelSrc.size = optionLen;
 
                 int i;
@@ -478,7 +503,8 @@ parseOptions(CotpConnection* self, uint8_t* buffer, int bufLen)
             break;
 
         case 0xc2: /* local T-selector */
-            if (optionLen < 5) {
+            if (optionLen < 5)
+            {
                 self->options.tSelDst.size = optionLen;
 
                 int i;
@@ -650,7 +676,8 @@ parseDataTpdu(CotpConnection* self, uint8_t* buffer, uint8_t len)
 static bool
 addPayloadToBuffer(CotpConnection* self, uint8_t* buffer,  int payloadLength)
 {
-    if (payloadLength < 1) {
+    if (payloadLength < 1)
+    {
         if (DEBUG_COTP)
             printf("COTP: missing payload\n");
 
@@ -681,7 +708,8 @@ parseCotpMessage(CotpConnection* self)
 
     len = buffer[0];
 
-    if (len > tpduLength) {
+    if (len > tpduLength)
+    {
       if (DEBUG_COTP)
           printf("COTP: parseCotpMessage: len=%d tpduLength=%d\n", len, tpduLength);
 
@@ -702,8 +730,8 @@ parseCotpMessage(CotpConnection* self)
         else
             return COTP_ERROR;
     case 0xf0:
-        if (parseDataTpdu(self, buffer + 2, len)) {
-
+        if (parseDataTpdu(self, buffer + 2, len))
+        {
             if (addPayloadToBuffer(self, buffer + 3, tpduLength - 3) != 1)
                 return COTP_ERROR;
 
@@ -743,7 +771,8 @@ readFromSocket(CotpConnection* self, uint8_t* buf, int size)
 #if (CONFIG_MMS_SUPPORT_TLS == 1)
     if (self->tlsSocket)
         return TLSSocket_read(self->tlsSocket, buf, size);
-    else {
+    else
+    {
         switch (Handleset_waitReady(self->handleSet, 10))
         {
             case -1:
@@ -787,7 +816,8 @@ CotpConnection_readToTpktBuffer(CotpConnection* self)
 
     assert (bufferSize > 4);
 
-    if (self->socketExtensionBufferFill > 0) {
+    if (self->socketExtensionBufferFill > 0)
+    {
         if (flushBuffer(self) == false)
             goto exit_error;
 
@@ -797,33 +827,38 @@ CotpConnection_readToTpktBuffer(CotpConnection* self)
 
     int readBytes;
 
-    if (bufPos < 4) {
-
+    if (bufPos < 4)
+    {
         readBytes = readFromSocket(self, buffer + bufPos, 4 - bufPos);
 
         if (readBytes < 0)
             goto exit_closed;
 
-        if (DEBUG_COTP) {
+        if (DEBUG_COTP)
+        {
             if (readBytes > 0)
                 printf("TPKT: read %i bytes from socket\n", readBytes);
         }
 
         bufPos += readBytes;
 
-        if (bufPos == 4) {
-            if ((buffer[0] == 3) && (buffer[1] == 0)) {
+        if (bufPos == 4)
+        {
+            if ((buffer[0] == 3) && (buffer[1] == 0))
+            {
                 self->packetSize = (buffer[2] * 0x100) + buffer[3];
 
                 if (DEBUG_COTP)
                     printf("TPKT: header complete (msg size = %i)\n", self->packetSize);
 
-                if (self->packetSize > bufferSize) {
+                if (self->packetSize > bufferSize)
+                {
                     if (DEBUG_COTP) printf("TPKT: packet too large\n");
                     goto exit_error;
                 }
             }
-            else {
+            else
+            {
                 if (DEBUG_COTP) printf("TPKT: failed to decode TPKT header.\n");
                 goto exit_error;
             }
@@ -869,4 +904,3 @@ exit_waiting:
     self->readBuffer->size = bufPos;
     return TPKT_WAITING;
 }
-
