@@ -144,12 +144,17 @@ set(FOUND_SQLITE3_SOURCE 1)
 message("Found sqlite3 source in third_party folder -> can compile with log service support")
 endif(EXISTS ${CMAKE_CURRENT_LIST_DIR}/third_party/sqlite/sqlite3.h)
 
+if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/third_party/mbedtls/mbedtls-3.6.0)
+set(WITH_MBEDTLS3 1)
+set(MBEDTLS_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/third_party/mbedtls/mbedtls-3.6.0/include")
+else()
 if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/third_party/mbedtls/mbedtls-2.28)
 set(WITH_MBEDTLS 1)
 set(MBEDTLS_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/third_party/mbedtls/mbedtls-2.28/include")
 endif(EXISTS ${CMAKE_CURRENT_LIST_DIR}/third_party/mbedtls/mbedtls-2.28)
+endif(EXISTS ${CMAKE_CURRENT_LIST_DIR}/third_party/mbedtls/mbedtls-3.6.0)
 
-if(WITH_MBEDTLS)
+if(WITH_MBEDTLS OR WITH_MBEDTLS3)
 
 add_definitions(-DCONFIG_MMS_SUPPORT_TLS=1)
 
@@ -165,7 +170,7 @@ if (CONFIG_IEC61850_SNTP_CLIENT)
 set(BUILD_SNTP_CLIENT_EXAMPLES 1)
 endif (CONFIG_IEC61850_SNTP_CLIENT)
 
-endif(WITH_MBEDTLS)
+endif(WITH_MBEDTLS OR WITH_MBEDTLS3)
 
 include(CheckCCompilerFlag)
 

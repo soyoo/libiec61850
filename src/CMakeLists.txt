@@ -1,9 +1,16 @@
+if(WITH_MBEDTLS3)
+include_directories(
+	${CMAKE_CURRENT_LIST_DIR}/tls/mbedtls3
+    ${CMAKE_CURRENT_LIST_DIR}/../third_party/mbedtls/mbedtls-3.6.0/include
+)
+else()
 if(WITH_MBEDTLS)
 include_directories(
 	${CMAKE_CURRENT_LIST_DIR}/tls/mbedtls
     ${CMAKE_CURRENT_LIST_DIR}/../third_party/mbedtls/mbedtls-2.28/include
 )
 endif(WITH_MBEDTLS)
+endif(WITH_MBEDTLS3)
 
 set (lib_common_SRCS
 ./common/string_map.c
@@ -189,7 +196,7 @@ set (lib_sv_SRCS
 ./sampled_values/sv_publisher.c
 )
 
-if(WITH_MBEDTLS AND (CONFIG_IEC61850_R_GOOSE OR CONFIG_IEC61850_R_SMV))
+if((WITH_MBEDTLS OR WITH_MBEDTLS3) AND (CONFIG_IEC61850_R_GOOSE OR CONFIG_IEC61850_R_SMV))
 set (lib_rsession_SRCS
 ./r_session/r_session.c
 ./r_session/r_session_crypto_mbedtls.c
