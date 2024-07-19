@@ -28,7 +28,7 @@ message("Found winpcap -> compile ethernet HAL layer (required for GOOSE/SV supp
 set(WITH_WPCAP 1)
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/../third_party/winpcap/Include")
 else()
-message("winpcap not found -> skip ethernet HAL layer (no GOOSE/SV support)")
+message("winpcap not found -> skip ethernet HAL layer (no L2 GOOSE/SV support)")
 endif()
 
 endif(WIN32)

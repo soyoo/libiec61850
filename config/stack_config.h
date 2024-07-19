@@ -68,35 +68,19 @@
 /* maximum COTP (ISO 8073) TPDU size - valid range is 1024 - 8192 */
 #define CONFIG_COTP_MAX_TPDU_SIZE 8192
 
-/* Ethernet interface ID for GOOSE and SV */
+/* Ethernet interface ID for L2 GOOSE and SV */
 #define CONFIG_ETHERNET_INTERFACE_ID "eth0"
 /* #define CONFIG_ETHERNET_INTERFACE_ID "vboxnet0" */
 /* #define CONFIG_ETHERNET_INTERFACE_ID "en0"  // OS X uses enX in place of ethX as ethernet NIC names. */
 
-/* Set to 1 to include GOOSE support in the build. Otherwise set to 0 */
+/* Set to 1 to include generic GOOSE support in the build. Otherwise set to 0 */
 #define CONFIG_INCLUDE_GOOSE_SUPPORT 1
 
-/* Set to 1 to include Sampled Values support in the build. Otherwise set to 0 */
+/* Set to 1 to include generic Sampled Values support in the build. Otherwise set to 0 */
 #define CONFIG_IEC61850_SAMPLED_VALUES_SUPPORT 1
 
 /* Set to 1 to compile for edition 1 server - default is 0 to compile for edition 2 */
 #define CONFIG_IEC61850_EDITION_1 0
-
-#ifdef _WIN32
-
-/* GOOSE will be disabled for Windows if ethernet support (winpcap) is not available */
-#ifdef EXCLUDE_ETHERNET_WINDOWS
-#ifdef CONFIG_INCLUDE_GOOSE_SUPPORT
-#undef CONFIG_INCLUDE_GOOSE_SUPPORT
-#endif
-#define CONFIG_INCLUDE_GOOSE_SUPPORT 0
-#define CONFIG_INCUDE_ETHERNET_WINDOWS 0
-#else
-#define CONFIG_INCLUDE_ETHERNET_WINDOWS 1
-#undef CONFIG_ETHERNET_INTERFACE_ID
-#define CONFIG_ETHERNET_INTERFACE_ID "0"
-#endif
-#endif
 
 /* The GOOSE retransmission interval in ms for the stable condition - i.e. no monitored value changed */
 #define CONFIG_GOOSE_STABLE_STATE_TRANSMISSION_INTERVAL 5000
@@ -179,8 +163,35 @@
 /* compile with support for R-SMV (mbedtls required) */
 #define CONFIG_IEC61850_R_SMV 0
 
+/* compile with support for L2 GOOSE */
+#define CONFIG_IEC61850_L2_GOOSE 0
+
+/* compile with support for L2 SMV */
+#define CONFIG_IEC61850_L2_SMV 0
+
 /* compile SNTP client code */
 #define CONFIG_IEC61850_SNTP_CLIENT 0
+
+
+#ifdef _WIN32
+
+/* L2 GOOSE/SMV will be disabled for Windows if ethernet support (winpcap) is not available */
+#ifdef EXCLUDE_ETHERNET_WINDOWS
+#ifdef CONFIG_IEC61850_L2_GOOSE
+#undef CONFIG_IEC61850_L2_GOOSE
+#endif
+#ifdef CONFIG_IEC61850_L2_SMV
+#undef CONFIG_IEC61850_L2_SMV
+#endif
+#define CONFIG_IEC61850_L2_GOOSE 0
+#define CONFIG_IEC61850_L2_SMV 0
+#define CONFIG_INCUDE_ETHERNET_WINDOWS 0
+#else
+#define CONFIG_INCLUDE_ETHERNET_WINDOWS 1
+#undef CONFIG_ETHERNET_INTERFACE_ID
+#define CONFIG_ETHERNET_INTERFACE_ID "0"
+#endif
+#endif
 
 /* overwrite default results for MMS identify service */
 /* #define CONFIG_DEFAULT_MMS_VENDOR_NAME "libiec61850.com" */

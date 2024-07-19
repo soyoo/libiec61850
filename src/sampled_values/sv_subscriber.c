@@ -1,7 +1,7 @@
 /*
  *  sv_receiver.c
  *
- *  Copyright 2015-2022 Michael Zillgith
+ *  Copyright 2015-2024 Michael Zillgith
  *
  *  This file is part of libIEC61850.
  *
@@ -67,7 +67,6 @@ struct sSVReceiver
     Semaphore subscriberListLock;
     Thread thread;
 #endif
-
 };
 
 struct sSVSubscriber
@@ -101,7 +100,8 @@ SVReceiver_create(void)
 {
     SVReceiver self = (SVReceiver) GLOBAL_CALLOC(1, sizeof(struct sSVReceiver));
 
-    if (self != NULL) {
+    if (self)
+    {
         self->subscriberList = LinkedList_create();
         self->buffer = (uint8_t*) GLOBAL_MALLOC(ETH_BUFFER_LENGTH);
 
@@ -122,7 +122,8 @@ SVReceiver_createRemote(RSession session)
 {
     SVReceiver self = (SVReceiver) GLOBAL_CALLOC(1, sizeof(struct sSVReceiver));
 
-    if (self != NULL) {
+    if (self != NULL)
+    {
         self->subscriberList = LinkedList_create();
         self->buffer = NULL;
 
@@ -193,6 +194,7 @@ svReceiverLoop(void* threadParameter)
 {
     SVReceiver self = (SVReceiver) threadParameter;
 
+#if (CONFIG_IEC61850_L2_SMV == 1)
     if (self->ethSocket)
     {
         EthernetHandleSet handleSet = EthernetHandleSet_new();
@@ -217,8 +219,10 @@ svReceiverLoop(void* threadParameter)
 
         EthernetHandleSet_destroy(handleSet);
     }
+#endif /* (CONFIG_IEC61850_L2_SMV == 1) */
+
 #if (CONFIG_IEC61850_R_SMV == 1)
-    else  if (self->session)
+    if (self->session)
     {
         self->stopped = false;
 
@@ -349,14 +353,12 @@ SVReceiver_startThreadless(SVReceiver self)
 
             return true;
         }
-        else
-        {
-            return false;
-        }
     }
     else
     {
 #endif /* (CONFIG_IEC61850_R_SMV == 1) */
+
+#if (CONFIG_IEC61850_L2_SMV == 1)
         if (self->interfaceId == NULL)
             self->ethSocket = Ethernet_createSocket(CONFIG_ETHERNET_INTERFACE_ID, NULL);
         else
@@ -367,22 +369,25 @@ SVReceiver_startThreadless(SVReceiver self)
             Ethernet_setProtocolFilter(self->ethSocket, ETH_P_SV);
 
             self->running = true;
-        }
 
-        if (self->ethSocket)
             return true;
-        else
-            return false;
+        }
+#endif /* (CONFIG_IEC61850_L2_SMV == 1) */
+
 #if (CONFIG_IEC61850_R_SMV == 1)
     }
 #endif /* (CONFIG_IEC61850_R_SMV == 1) */
+
+    return false;
 }
 
 void
 SVReceiver_stopThreadless(SVReceiver self)
 {
+#if (CONFIG_IEC61850_L2_SMV == 1)
     if (self->ethSocket)
         Ethernet_destroySocket(self->ethSocket);
+#endif /* (CONFIG_IEC61850_L2_SMV == 1) */
 
 #if (CONFIG_IEC61850_R_SMV == 1)
     if (self->session) {
@@ -611,35 +616,37 @@ handleSVApdu(SVReceiver self, uint16_t appId, uint8_t* apdu, int apduLength, uin
 
     bool subscriberFound = false;
 
-    while (element != NULL) {
+    while (element)
+    {
         subscriber = (SVSubscriber) LinkedList_getData(element);
 
-        if (subscriber->appId == appId) {
-
-
-            if (self->checkDestAddr) {
-
-                if (self->ethSocket) {
-                    if (memcmp(dstAddr, subscriber->ethAddr, 6) == 0) {
+        if (subscriber->appId == appId)
+        {
+            if (self->checkDestAddr)
+            {
+                if (self->ethSocket)
+                {
+                    if (memcmp(dstAddr, subscriber->ethAddr, 6) == 0)
+                    {
                         subscriberFound = true;
                         break;
                     }
                     else
+                    {
                         if (DEBUG_SV_SUBSCRIBER)
                             printf("SV_SUBSCRIBER: Checking ethernet dest address failed!\n");
+                    }
                 }
-                else {
+                else
+                {
                     //TODO check destination IP address for R-SV
-
                 }
-
             }
-            else {
+            else
+            {
                 subscriberFound = true;
                 break;
             }
-
-
         }
 
         element = LinkedList_getNext(element);
@@ -650,8 +657,11 @@ handleSVApdu(SVReceiver self, uint16_t appId, uint8_t* apdu, int apduLength, uin
 #endif
 
     if (subscriberFound)
+    {
         parseSVPayload(self, subscriber, apdu, apduLength);
-    else {
+    }
+    else
+    {
         if (DEBUG_SV_SUBSCRIBER)
             printf("SV_SUBSCRIBER: SV message ignored due to unknown APPID value or dest address mismatch\n");
     }
@@ -724,6 +734,7 @@ handleSessionPayloadElement(void* parameter, uint16_t appId, uint8_t* payloadDat
 bool
 SVReceiver_tick(SVReceiver self)
 {
+#if (CONFIG_IEC61850_L2_SMV == 1)
     if (self->ethSocket)
     {
         int packetSize = Ethernet_receivePacket(self->ethSocket, self->buffer, ETH_BUFFER_LENGTH);
@@ -734,8 +745,10 @@ SVReceiver_tick(SVReceiver self)
             return true;
         }
     }
+#endif /* (CONFIG_IEC61850_L2_SMV == 1) */
+
 #if (CONFIG_IEC61850_R_SMV == 1)
-    else if (self->session)
+    if (self->session)
     {
         if (RSession_receiveMessage(self->session, handleSessionPayloadElement, (void*) self) == R_SESSION_ERROR_OK)
             return true;
@@ -750,7 +763,7 @@ SVSubscriber_create(const uint8_t* ethAddr, uint16_t appID)
 {
     SVSubscriber self = (SVSubscriber) GLOBAL_CALLOC(1, sizeof(struct sSVSubscriber));
 
-    if (self != NULL)
+    if (self)
     {
         self->appId = appID;
 
@@ -764,7 +777,7 @@ SVSubscriber_create(const uint8_t* ethAddr, uint16_t appID)
 void
 SVSubscriber_destroy(SVSubscriber self)
 {
-    if (self != NULL)
+    if (self)
         GLOBAL_FREEMEM(self);
 }
 
@@ -819,7 +832,7 @@ decodeUtcTimeToNsTime(uint8_t* buffer, uint8_t* timeQuality)
     nsVal = nsVal * 1000000000UL;
     nsVal = nsVal >> 24;
 
-    if (timeQuality != NULL)
+    if (timeQuality)
         *timeQuality = buffer[7];
 
     uint64_t timeval64 = (uint64_t) timeval32 * 1000000000ULL + nsVal;
@@ -832,7 +845,7 @@ SVSubscriber_ASDU_getRefrTmAsMs(SVSubscriber_ASDU self)
 {
     msSinceEpoch msTime = 0;
 
-    if (self->refrTm != NULL)
+    if (self->refrTm)
         msTime = decodeUtcTimeToNsTime(self->refrTm, NULL);
 
     return (msTime / 1000000ULL);
@@ -843,7 +856,7 @@ SVSubscriber_ASDU_getRefrTmAsNs(SVSubscriber_ASDU self)
 {
     nsSinceEpoch nsTime = 0;
 
-    if (self->refrTm != NULL)
+    if (self->refrTm)
         nsTime = decodeUtcTimeToNsTime(self->refrTm, NULL);
 
     return nsTime;
@@ -1085,100 +1098,4 @@ int
 SVSubscriber_ASDU_getDataSize(SVSubscriber_ASDU self)
 {
     return self->dataBufferLength;
-}
-
-uint16_t
-SVClientASDU_getSmpCnt(SVSubscriber_ASDU self)
-{
-    return SVSubscriber_ASDU_getSmpCnt(self);
-}
-
-const char*
-SVClientASDU_getSvId(SVSubscriber_ASDU self)
-{
-    return SVSubscriber_ASDU_getSvId(self);
-}
-
-uint32_t
-SVClientASDU_getConfRev(SVSubscriber_ASDU self)
-{
-    return SVSubscriber_ASDU_getConfRev(self);
-}
-
-bool
-SVClientASDU_hasRefrTm(SVSubscriber_ASDU self)
-{
-    return SVSubscriber_ASDU_hasRefrTm(self);
-}
-
-uint64_t
-SVClientASDU_getRefrTmAsMs(SVSubscriber_ASDU self)
-{
-    return SVSubscriber_ASDU_getRefrTmAsMs(self);
-}
-
-int8_t
-SVClientASDU_getINT8(SVSubscriber_ASDU self, int index)
-{
-    return SVSubscriber_ASDU_getINT8(self, index);
-}
-
-int16_t
-SVClientASDU_getINT16(SVSubscriber_ASDU self, int index)
-{
-    return SVSubscriber_ASDU_getINT16(self, index);
-}
-
-int32_t
-SVClientASDU_getINT32(SVSubscriber_ASDU self, int index)
-{
-    return SVSubscriber_ASDU_getINT32(self, index);
-}
-
-int64_t
-SVClientASDU_getINT64(SVSubscriber_ASDU self, int index)
-{
-    return SVSubscriber_ASDU_getINT64(self, index);
-}
-
-uint8_t
-SVClientASDU_getINT8U(SVSubscriber_ASDU self, int index)
-{
-    return SVSubscriber_ASDU_getINT8U(self, index);
-}
-
-uint16_t
-SVClientASDU_getINT16U(SVSubscriber_ASDU self, int index)
-{
-    return SVSubscriber_ASDU_getINT16U(self, index);
-}
-
-uint32_t
-SVClientASDU_getINT32U(SVSubscriber_ASDU self, int index)
-{
-    return SVSubscriber_ASDU_getINT32U(self, index);
-}
-
-uint64_t
-SVClientASDU_getINT64U(SVSubscriber_ASDU self, int index)
-{
-    return SVSubscriber_ASDU_getINT64U(self, index);
-}
-
-float
-SVClientASDU_getFLOAT32(SVSubscriber_ASDU self, int index)
-{
-    return SVSubscriber_ASDU_getFLOAT32(self, index);
-}
-
-double
-SVClientASDU_getFLOAT64(SVSubscriber_ASDU self, int index)
-{
-    return SVSubscriber_ASDU_getFLOAT64(self, index);
-}
-
-int
-SVClientASDU_getDataSize(SVSubscriber_ASDU self)
-{
-    return SVSubscriber_ASDU_getDataSize(self);
 }

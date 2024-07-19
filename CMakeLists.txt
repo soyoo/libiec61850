@@ -52,6 +52,8 @@ option(CONFIG_IEC61850_SERVICE_TRACKING "Build with support for IEC 61850 servic
 option(CONFIG_IEC61850_SETTING_GROUPS "Build with support for IEC 61850 setting group services" ON)
 option(CONFIG_IEC61850_SUPPORT_USER_READ_ACCESS_CONTROL "Allow user provided callback to control read access" ON)
 option(CONFIG_IEC61850_RCB_ALLOW_ONLY_PRECONFIGURED_CLIENT "allow only configured clients (when pre-configured by ClientLN)" OFF)
+option(CONFIG_IEC61850_L2_GOOSE "Build with support for L2 GOOSE (winpcap required on windows)" ON)
+option(CONFIG_IEC61850_L2_SMV "Build with support for L2 SMV (winpcap required on windows)" ON)
 option(CONFIG_IEC61850_R_GOOSE "Build with support for R-GOOSE (mbedtls required)" ON)
 option(CONFIG_IEC61850_R_SMV "Build with support for R-SMV (mbedtls required)" ON)
 option(CONFIG_IEC61850_SNTP_CLIENT "Build with SNTP client code" ON)

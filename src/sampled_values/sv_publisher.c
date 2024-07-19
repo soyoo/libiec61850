@@ -1,7 +1,7 @@
 /*
  *  sv_publisher.c
  *
- *  Copyright 2016-2022 Michael Zillgith
+ *  Copyright 2016-2024 Michael Zillgith
  *
  *  This file is part of libIEC61850.
  *
@@ -76,8 +76,10 @@ struct sSVPublisher {
     uint16_t appId;
     bool simulation;
 
+#if (CONFIG_IEC61850_L2_SMV == 1)
     /* only for Ethernet based SV */
     EthernetSocket ethernetSocket;
+#endif /* (CONFIG_IEC61850_L2_SMV == 1) */
 
 #if (CONFIG_IEC61850_R_SMV == 1)
     /* only for R-SV */
@@ -93,7 +95,7 @@ struct sSVPublisher {
     SVPublisher_ASDU asduList;
 };
 
-
+#if (CONFIG_IEC61850_L2_SMV == 1)
 static bool
 preparePacketBuffer(SVPublisher self, CommParameters* parameters, const char* interfaceId, bool useVlanTags)
 {
@@ -194,7 +196,7 @@ preparePacketBuffer(SVPublisher self, CommParameters* parameters, const char* in
 
     return true;
 }
-
+#endif /* (CONFIG_IEC61850_L2_SMV == 1) */
 
 static int
 encodeUInt16FixedSize(uint16_t value, uint8_t* buffer, int bufPos)
@@ -303,6 +305,7 @@ SVPublisher_createRemote(RSession session, uint16_t appId)
 }
 #endif /* (CONFIG_IEC61850_R_SMV == 1) */
 
+#if (CONFIG_IEC61850_L2_SMV == 1)
 SVPublisher
 SVPublisher_createEx(CommParameters* parameters, const char* interfaceId, bool useVlanTag)
 {
@@ -329,6 +332,7 @@ SVPublisher_create(CommParameters* parameters, const char* interfaceId)
 {
     return SVPublisher_createEx(parameters, interfaceId, true);
 }
+#endif /* (CONFIG_IEC61850_R_SMV == 1) */
 
 SVPublisher_ASDU
 SVPublisher_addASDU(SVPublisher self, const char* svID, const char* datset, uint32_t confRev)
@@ -527,21 +531,25 @@ SVPublisher_setupComplete(SVPublisher self)
 void
 SVPublisher_publish(SVPublisher self)
 {
-    if (DEBUG_SV_PUBLISHER)
-        printf("SV_PUBLISHER: send SV message\n");
+#if (CONFIG_IEC61850_L2_SMV == 1)
+    if (self->ethernetSocket)
+    {
+        if (DEBUG_SV_PUBLISHER)
+            printf("SV_PUBLISHER: send L2 SV message\n");
 
-    if (self->ethernetSocket) {
         Ethernet_sendPacket(self->ethernetSocket, self->buffer, self->payloadStart + self->payloadLength);
     }
+#endif /* (CONFIG_IEC61850_L2_SMV == 1) */
+
 #if (CONFIG_IEC61850_R_SMV == 1)
-    else if (self->remoteSession) {
+    if (self->remoteSession)
+    {
+        if (DEBUG_SV_PUBLISHER)
+            printf("SV_PUBLISHER: send R-SV message\n");
+
         RSession_sendMessage(self->remoteSession, RSESSION_SPDU_ID_SV, self->simulation, self->appId, self->buffer, self->payloadLength);
     }
 #endif /* (CONFIG_IEC61850_R_SMV == 1) */
-    else {
-        if (DEBUG_SV_PUBLISHER)
-            printf("SV_PUBLISHER: no network layer!\n");
-    }
 }
 
 void
@@ -549,8 +557,10 @@ SVPublisher_destroy(SVPublisher self)
 {
     if (self)
     {
+#if (CONFIG_IEC61850_L2_SMV == 1)
         if (self->ethernetSocket)
             Ethernet_destroySocket(self->ethernetSocket);
+#endif /* (CONFIG_IEC61850_L2_SMV == 1) */
 
         if (self->buffer)
             GLOBAL_FREEMEM(self->buffer);
@@ -807,140 +817,4 @@ SVPublisher_ASDU_setSmpSynch(SVPublisher_ASDU self, uint16_t smpSynch)
 {
     self->smpSynch = smpSynch;
     *(self->smpSynchBuf) = self->smpSynch;
-}
-
-/*******************************************************************
- * Wrapper functions to support old API (remove in future versions)
- *******************************************************************/
-
-SVPublisher
-SampledValuesPublisher_create(CommParameters* parameters, const char* interfaceId)
-{
-    return SVPublisher_create(parameters, interfaceId);
-}
-
-SVPublisher_ASDU
-SampledValuesPublisher_addASDU(SVPublisher self, char* svID, char* datset, uint32_t confRev)
-{
-    return SVPublisher_addASDU(self, svID, datset, confRev);
-}
-
-void
-SampledValuesPublisher_setupComplete(SVPublisher self)
-{
-    SVPublisher_setupComplete(self);
-}
-
-void
-SampledValuesPublisher_publish(SVPublisher self)
-{
-    SVPublisher_publish(self);
-}
-
-void
-SampledValuesPublisher_destroy(SVPublisher self)
-{
-    SVPublisher_destroy(self);
-}
-
-void
-SV_ASDU_resetBuffer(SVPublisher_ASDU self)
-{
-    SVPublisher_ASDU_resetBuffer(self);
-}
-
-int
-SV_ASDU_addINT8(SVPublisher_ASDU self)
-{
-    return SVPublisher_ASDU_addINT8(self);
-}
-
-void
-SV_ASDU_setINT8(SVPublisher_ASDU self, int index, int8_t value)
-{
-    SVPublisher_ASDU_setINT8(self, index, value);
-}
-
-int
-SV_ASDU_addINT32(SVPublisher_ASDU self)
-{
-    return SVPublisher_ASDU_addINT32(self);
-}
-
-void
-SV_ASDU_setINT32(SVPublisher_ASDU self, int index, int32_t value)
-{
-    SVPublisher_ASDU_setINT32(self, index, value);
-}
-
-int
-SV_ASDU_addINT64(SVPublisher_ASDU self)
-{
-    return SVPublisher_ASDU_addINT64(self);
-}
-
-void
-SV_ASDU_setINT64(SVPublisher_ASDU self, int index, int64_t value)
-{
-    SVPublisher_ASDU_setINT64(self, index, value);
-}
-
-int
-SV_ASDU_addFLOAT(SVPublisher_ASDU self)
-{
-    return SVPublisher_ASDU_addFLOAT(self);
-}
-
-void
-SV_ASDU_setFLOAT(SVPublisher_ASDU self, int index, float value)
-{
-    SVPublisher_ASDU_setFLOAT(self, index, value);
-}
-
-int
-SV_ASDU_addFLOAT64(SVPublisher_ASDU self)
-{
-    return SVPublisher_ASDU_addFLOAT64(self);
-}
-
-void
-SV_ASDU_setFLOAT64(SVPublisher_ASDU self, int index, double value)
-{
-    SVPublisher_ASDU_setFLOAT64(self, index, value);
-}
-
-void
-SV_ASDU_setSmpCnt(SVPublisher_ASDU self, uint16_t value)
-{
-    SVPublisher_ASDU_setSmpCnt(self, value);
-}
-
-uint16_t
-SV_ASDU_getSmpCnt(SVPublisher_ASDU self)
-{
-    return SVPublisher_ASDU_getSmpCnt(self);
-}
-
-void
-SV_ASDU_increaseSmpCnt(SVPublisher_ASDU self)
-{
-    SVPublisher_ASDU_increaseSmpCnt(self);
-}
-
-void
-SV_ASDU_setRefrTm(SVPublisher_ASDU self, uint64_t refrTm)
-{
-    SVPublisher_ASDU_setRefrTm(self, refrTm);
-}
-
-void
-SV_ASDU_setSmpMod(SVPublisher_ASDU self, uint8_t smpMod)
-{
-    SVPublisher_ASDU_setSmpMod(self, smpMod);
-}
-
-void
-SV_ASDU_setSmpRate(SVPublisher_ASDU self, uint16_t smpRate)
-{
-    SVPublisher_ASDU_setSmpRate(self, smpRate);
 }

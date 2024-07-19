@@ -73,7 +73,7 @@ GooseReceiver_createEx(uint8_t* buffer)
 {
     GooseReceiver self = (GooseReceiver) GLOBAL_MALLOC(sizeof(struct sGooseReceiver));
 
-    if (self != NULL)
+    if (self)
     {
         self->running = false;
         self->stop = false;
@@ -94,7 +94,8 @@ GooseReceiver_create()
 {
     GooseReceiver self = GooseReceiver_createEx(NULL);
 
-    if (self) {
+    if (self)
+    {
         self->buffer = (uint8_t*) GLOBAL_MALLOC(ETH_BUFFER_LENGTH);
     }
 
@@ -107,7 +108,8 @@ GooseReceiver_createRemote(RSession session)
 {
     GooseReceiver self = GooseReceiver_create();
 
-    if (self) {
+    if (self)
+    {
         self->session = session;
     }
 
@@ -1116,7 +1118,8 @@ parseGooseMessage(GooseReceiver self, uint8_t* buffer, int numbytes)
 
     if (subscriberFound)
         parseGoosePayload(self, buffer + bufPos, apduLength);
-    else {
+    else
+    {
         if (DEBUG_GOOSE_SUBSCRIBER)
             printf("GOOSE_SUBSCRIBER: GOOSE message ignored due to unknown DST-MAC or APPID value\n");
     }
@@ -1128,6 +1131,7 @@ gooseReceiverLoop(void *threadParameter)
 {
     GooseReceiver self = (GooseReceiver) threadParameter;
 
+#if (CONFIG_IEC61850_L2_GOOSE == 1)
     if (self->ethSocket)
     {
         EthernetHandleSet handleSet = EthernetHandleSet_new();
@@ -1159,8 +1163,10 @@ gooseReceiverLoop(void *threadParameter)
 
         EthernetHandleSet_destroy(handleSet);
     }
+#endif /* (CONFIG_IEC61850_L2_GOOSE == 1) */
+
 #if (CONFIG_IEC61850_R_GOOSE == 1)
-    else if (self->session)
+    if (self->session)
     {
         HandleSet handleSet = Handleset_new();
 
@@ -1207,29 +1213,38 @@ GooseReceiver_start(GooseReceiver self)
     {
         self->thread = Thread_create((ThreadExecutionFunction) gooseReceiverLoop, (void*) self, false);
 
-        if (self->thread != NULL) {
-
-            if (self->ethSocket) {
+        if (self->thread)
+        {
+#if (CONFIG_IEC61850_L2_GOOSE == 1)
+            if (self->ethSocket)
+            {
                 if (DEBUG_GOOSE_SUBSCRIBER)
                     printf("GOOSE_SUBSCRIBER: GOOSE receiver started for interface %s\n", self->interfaceId);
 
                 Thread_start(self->thread);
+
+                return;
             }
+#endif /* (CONFIG_IEC61850_L2_GOOSE == 1) */
+
+
 #if (CONFIG_IEC61850_R_GOOSE == 1)
-            else if (self->session) {
+            if (self->session)
+            {
                 if (DEBUG_GOOSE_SUBSCRIBER)
                     printf("GOOSE_SUBSCRIBER: R-GOOSE receiver started\n");
 
                 Thread_start(self->thread);
+
+                return;
             }
 #endif /* (CONFIG_IEC61850_R_GOOSE == 1) */
-            else {
-                if (DEBUG_GOOSE_SUBSCRIBER)
-                    printf("GOOSE_SUBSCRIBER: ERROR - No link/transport layer specified -> cannot start!\n");
 
-                Thread_destroy(self->thread);
-                self->thread = NULL;
-            }
+            if (DEBUG_GOOSE_SUBSCRIBER)
+                printf("GOOSE_SUBSCRIBER: ERROR - No link/transport layer specified -> cannot start!\n");
+
+            Thread_destroy(self->thread);
+            self->thread = NULL;
         }
         else {
             if (DEBUG_GOOSE_SUBSCRIBER)
@@ -1287,7 +1302,8 @@ EthernetSocket
 GooseReceiver_startThreadless(GooseReceiver self)
 {
 #if (CONFIG_IEC61850_R_GOOSE == 1)
-    if (self->session) {
+    if (self->session)
+    {
         if (RSession_start(self->session) == R_SESSION_ERROR_OK)
         {
             self->running = true;
@@ -1304,6 +1320,7 @@ GooseReceiver_startThreadless(GooseReceiver self)
     else {
 #endif /* (CONFIG_IEC61850_R_GOOSE == 1) */
 
+#if (CONFIG_IEC61850_L2_GOOSE == 1)
         if (self->interfaceId == NULL)
             self->ethSocket = Ethernet_createSocket(CONFIG_ETHERNET_INTERFACE_ID, NULL);
         else
@@ -1340,6 +1357,7 @@ GooseReceiver_startThreadless(GooseReceiver self)
         else {
             self->running = false;
         }
+#endif /* (CONFIG_IEC61850_L2_GOOSE == 1) */
 
 #if (CONFIG_IEC61850_R_GOOSE == 1)
     }
@@ -1351,8 +1369,10 @@ GooseReceiver_startThreadless(GooseReceiver self)
 void
 GooseReceiver_stopThreadless(GooseReceiver self)
 {
+#if (CONFIG_IEC61850_L2_GOOSE == 1)
     if (self->ethSocket)
         Ethernet_destroySocket(self->ethSocket);
+#endif /* (CONFIG_IEC61850_L2_GOOSE == 1) */
 
     self->running = false;
 }
@@ -1367,7 +1387,6 @@ handleSessionPayloadElement(void* parameter, uint16_t appId, uint8_t* payloadDat
     parseGoosePayload(self, payloadData, payloadSize);
 }
 #endif /* (CONFIG_IEC61850_R_GOOSE == 1) */
-
 
 /* call after reception of ethernet frame */
 bool
@@ -1384,6 +1403,8 @@ GooseReceiver_tick(GooseReceiver self)
     else
     {
 #endif /* (CONFIG_IEC61850_R_GOOSE == 1) */
+
+#if (CONFIG_IEC61850_L2_GOOSE == 1)
         int packetSize = Ethernet_receivePacket(self->ethSocket, self->buffer, ETH_BUFFER_LENGTH);
 
         if (packetSize > 0)
@@ -1393,6 +1414,7 @@ GooseReceiver_tick(GooseReceiver self)
         }
         else
             return false;
+#endif /* (CONFIG_IEC61850_L2_GOOSE == 1) */
 
 #if (CONFIG_IEC61850_R_GOOSE == 1)
     }

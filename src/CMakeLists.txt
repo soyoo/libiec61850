@@ -220,7 +220,7 @@ set (lib_bsd_SRCS
 IF(WIN32)
 
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../third_party/winpcap/Lib/wpcap.lib")
-message("Found winpcap -> can compile with GOOSE support")
+message("Found winpcap -> can compile with L2 GOOSE/SMV support")
 set(WITH_WPCAP 1)
 endif()
 
@@ -232,16 +232,13 @@ set_source_files_properties(${lib_common_SRCS} ${lib_windows_SRCS}
                                        PROPERTIES LANGUAGE CXX)
 set_source_files_properties(${lib_rsession_SRCS}
                                        PROPERTIES LANGUAGE CXX)
-ENDIF()
-
-IF(WITH_WPCAP)
-IF(MSVC)
 set_source_files_properties(${lib_goose_SRCS}
                                        PROPERTIES LANGUAGE CXX)
 set_source_files_properties(${lib_sv_SRCS}
                                        PROPERTIES LANGUAGE CXX)
-
 ENDIF()
+
+IF(WITH_WPCAP)
 ELSE()
 add_definitions(-DEXCLUDE_ETHERNET_WINDOWS)
 ENDIF()
@@ -250,7 +247,7 @@ include_directories(
   ../third_party/winpcap/include
 )
 
-IF(WITH_WPCAP)
+IF(WITH_WPCAP OR CONFIG_IEC61850_R_GOOSE OR CONFIG_IEC61850_R_SMV)
 set (library_SRCS
     ${lib_common_SRCS}
     ${lib_asn1c_SRCS}
@@ -266,11 +263,10 @@ set (library_SRCS
     ${lib_common_SRCS}
     ${lib_asn1c_SRCS}
     ${lib_windows_SRCS}
-    ${lib_rsession_SRCS}
     ${lib_sntp_SRCS}
 )
 
-ENDIF(WITH_WPCAP)
+ENDIF(WITH_WPCAP OR CONFIG_IEC61850_R_GOOSE OR CONFIG_IEC61850_R_SMV)
 
 ELSEIF(UNIX)
 IF(APPLE)

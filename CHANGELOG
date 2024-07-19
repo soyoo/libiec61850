@@ -17,6 +17,7 @@ Other changes:
 
 - Ethernet(Linux): Set to promisc mode by default
 - removed legacy defines for report reasons (#449)
+- removed legacy compatibility functions for SV subscriner ("SVClientaSDU_")
 
 Fixed bugs and vulnerabilities:
 
