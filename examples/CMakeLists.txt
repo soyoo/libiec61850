@@ -55,10 +55,10 @@ else()
     set(BUILD_SV_GOOSE_EXAMPLES ON)
 endif()
 
-if(WITH_MBEDTLS)
+if(WITH_MBEDTLS OR WITH_MBEDTLS3)
 add_subdirectory(tls_client_example)
 add_subdirectory(tls_server_example)
-endif(WITH_MBEDTLS)
+endif(WITH_MBEDTLS OR WITH_MBEDTLS3)
 
 if(${BUILD_SV_GOOSE_EXAMPLES})
     add_subdirectory(server_example_goose)
