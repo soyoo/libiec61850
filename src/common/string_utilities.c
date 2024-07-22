@@ -110,6 +110,18 @@ StringUtils_createStringFromBufferInBuffer(char* newString, const uint8_t* buf, 
 }
 
 char*
+StringUtils_createStringFromBufferInBufferMax(char* newString, const uint8_t* buf, int size, int maxBufSize)
+{
+    if (size >= maxBufSize)
+        size = maxBufSize - 1;
+
+    memcpy(newString, buf, size);
+    newString[size] = 0;
+
+    return newString;
+}
+
+char*
 StringUtils_createStringInBuffer(char* newStr, int bufSize, int count, ...)
 {
     va_list ap;

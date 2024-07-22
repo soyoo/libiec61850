@@ -3394,8 +3394,9 @@ mmsListObjectsAccessHandler(void* parameter, MmsGetNameListType listType, MmsDom
 
             char* separator = strchr(variableId, '$');
 
-            if (separator) {
-                StringUtils_createStringFromBufferInBuffer(str, (uint8_t*) variableId, separator - variableId);
+            if (separator)
+            {
+                StringUtils_createStringFromBufferInBufferMax(str, (uint8_t*) variableId, separator - variableId, sizeof(str));
 
                 ln = LogicalDevice_getLogicalNode(ld, str);
 
@@ -3426,8 +3427,9 @@ mmsListObjectsAccessHandler(void* parameter, MmsGetNameListType listType, MmsDom
 
             char* separator = strchr(variableId, '$');
 
-            if (separator) {
-                StringUtils_createStringFromBufferInBuffer(str, (uint8_t*) variableId, separator - variableId);
+            if (separator)
+            {
+                StringUtils_createStringFromBufferInBufferMax(str, (uint8_t*) variableId, separator - variableId, sizeof(str));
 
                 ln = LogicalDevice_getLogicalNode(ld, str);
 
@@ -3467,7 +3469,7 @@ mmsListObjectsAccessHandler(void* parameter, MmsGetNameListType listType, MmsDom
                     char str[65];
                     char subObjectBuf[65];
 
-                    StringUtils_createStringFromBufferInBuffer(str, (uint8_t*) variableId, separator - variableId);
+                    StringUtils_createStringFromBufferInBufferMax(str, (uint8_t*) variableId, separator - variableId, sizeof(str));
 
                     LogicalNode* ln = LogicalDevice_getLogicalNode(ld, str);
 
@@ -3484,7 +3486,7 @@ mmsListObjectsAccessHandler(void* parameter, MmsGetNameListType listType, MmsDom
                             else {
                                 doEnd--;
 
-                                StringUtils_createStringFromBufferInBuffer(str, (uint8_t*) (doStart + 1), doEnd - doStart);
+                                StringUtils_createStringFromBufferInBufferMax(str, (uint8_t*) (doStart + 1), doEnd - doStart, sizeof(str));
 
                                 subObjectName = StringUtils_copyStringToBufferAndReplace(doEnd + 2, subObjectBuf, '$', '.');
                             }
@@ -3533,7 +3535,7 @@ mmsListObjectsAccessHandler(void* parameter, MmsGetNameListType listType, MmsDom
                     char* subObjectName = NULL;
                     char subObjectBuf[65];
 
-                    StringUtils_createStringFromBufferInBuffer(str, (uint8_t*) variableId, separator - variableId);
+                    StringUtils_createStringFromBufferInBufferMax(str, (uint8_t*) variableId, separator - variableId, sizeof(str));
 
                     LogicalNode* ln = LogicalDevice_getLogicalNode(ld, str);
 
@@ -3551,7 +3553,7 @@ mmsListObjectsAccessHandler(void* parameter, MmsGetNameListType listType, MmsDom
                             else {
                                 doEnd--;
 
-                                StringUtils_createStringFromBufferInBuffer(str, (uint8_t*) (doStart + 1), doEnd - doStart);
+                                StringUtils_createStringFromBufferInBufferMax(str, (uint8_t*) (doStart + 1), doEnd - doStart, sizeof(str));
 
                                 subObjectName = StringUtils_copyStringToBufferAndReplace(doEnd + 2, subObjectBuf, '$', '.');
                             }
@@ -3684,7 +3686,7 @@ mmsReadAccessHandler (void* parameter, MmsDomain* domain, char* variableId, MmsS
                 {
                     char str[65];
 
-                    StringUtils_createStringFromBufferInBuffer(str, (uint8_t*) variableId, separator - variableId);
+                    StringUtils_createStringFromBufferInBufferMax(str, (uint8_t*) variableId, separator - variableId, sizeof(str));
 
                     LogicalNode* ln = LogicalDevice_getLogicalNode(ld, str);
 
@@ -3704,7 +3706,7 @@ mmsReadAccessHandler (void* parameter, MmsDomain* domain, char* variableId, MmsS
                             {
                                 doEnd--;
 
-                                StringUtils_createStringFromBufferInBuffer(str, (uint8_t*) (doStart + 1), doEnd - doStart);
+                                StringUtils_createStringFromBufferInBufferMax(str, (uint8_t*) (doStart + 1), doEnd - doStart, sizeof(str));
                             }
 
                             if (fc == IEC61850_FC_SP)

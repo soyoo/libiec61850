@@ -76,6 +76,9 @@ StringUtils_createStringFromBuffer(const uint8_t* buf, int size);
 LIB61850_INTERNAL char*
 StringUtils_createStringFromBufferInBuffer(char* newString, const uint8_t* buf, int size);
 
+LIB61850_INTERNAL char*
+StringUtils_createStringFromBufferInBufferMax(char* newString, const uint8_t* buf, int size, int maxBufSize);
+
 LIB61850_INTERNAL void
 StringUtils_replace(char* string, char oldChar, char newChar);
 

@@ -401,13 +401,13 @@ createNamedVariableList(MmsServer server, MmsDomain* domain, MmsDevice* device,
 			char variableName[65];
 			char domainId[65];
 
-			StringUtils_createStringFromBufferInBuffer(variableName,
+			StringUtils_createStringFromBufferInBufferMax(variableName,
 					varSpec->choice.name.choice.domainspecific.itemId.buf,
-					varSpec->choice.name.choice.domainspecific.itemId.size);
+					varSpec->choice.name.choice.domainspecific.itemId.size, sizeof(variableName));
 
-			StringUtils_createStringFromBufferInBuffer(domainId,
+			StringUtils_createStringFromBufferInBufferMax(domainId,
 					varSpec->choice.name.choice.domainspecific.domainId.buf,
-					varSpec->choice.name.choice.domainspecific.domainId.size);
+					varSpec->choice.name.choice.domainspecific.domainId.size, sizeof(domainId));
 
 			MmsDomain* elementDomain = MmsDevice_getDomain(device, domainId);
 
@@ -494,9 +494,9 @@ mmsServer_handleDefineNamedVariableListRequest(
 			goto exit_free_struct;
 		}
 
-		StringUtils_createStringFromBufferInBuffer(domainName,
+		StringUtils_createStringFromBufferInBufferMax(domainName,
 				request->variableListName.choice.domainspecific.domainId.buf,
-				request->variableListName.choice.domainspecific.domainId.size);
+				request->variableListName.choice.domainspecific.domainId.size, sizeof(domainName));
 
 		MmsDomain* domain = MmsDevice_getDomain(device, domainName);
 
@@ -517,9 +517,9 @@ mmsServer_handleDefineNamedVariableListRequest(
 				goto exit_free_struct;
 			}
 
-			StringUtils_createStringFromBufferInBuffer(variableListName,
+			StringUtils_createStringFromBufferInBufferMax(variableListName,
 					request->variableListName.choice.domainspecific.itemId.buf,
-					request->variableListName.choice.domainspecific.itemId.size);
+					request->variableListName.choice.domainspecific.itemId.size, sizeof(variableListName));
 
 			if (MmsDomain_getNamedVariableList(domain, variableListName) != NULL) {
 				mmsMsg_createServiceErrorPdu(invokeId, response, MMS_ERROR_DEFINITION_OBJECT_EXISTS);
@@ -567,9 +567,9 @@ mmsServer_handleDefineNamedVariableListRequest(
 				goto exit_free_struct;
 			}
 
-			StringUtils_createStringFromBufferInBuffer(variableListName,
+			StringUtils_createStringFromBufferInBufferMax(variableListName,
 					request->variableListName.choice.aaspecific.buf,
-					request->variableListName.choice.aaspecific.size);
+					request->variableListName.choice.aaspecific.size, sizeof(variableListName));
 
 			if (MmsServerConnection_getNamedVariableList(connection, variableListName) != NULL) {
 				mmsMsg_createServiceErrorPdu(invokeId, response, MMS_ERROR_DEFINITION_OBJECT_EXISTS);
@@ -611,9 +611,9 @@ mmsServer_handleDefineNamedVariableListRequest(
 				goto exit_free_struct;
 			}
 
-			StringUtils_createStringFromBufferInBuffer(variableListName,
+			StringUtils_createStringFromBufferInBufferMax(variableListName,
 					request->variableListName.choice.vmdspecific.buf,
-					request->variableListName.choice.vmdspecific.size);
+					request->variableListName.choice.vmdspecific.size, sizeof(variableListName));
 
 			if (mmsServer_getNamedVariableListWithName(MmsDevice_getNamedVariableLists(connection->server->device), variableListName) != NULL) {
 				mmsMsg_createServiceErrorPdu(invokeId, response, MMS_ERROR_DEFINITION_OBJECT_EXISTS);
@@ -758,11 +758,11 @@ mmsServer_handleGetNamedVariableListAttributesRequest(
 			goto exit_function;
 		}
 
-		StringUtils_createStringFromBufferInBuffer(domainName, request->choice.domainspecific.domainId.buf,
-				request->choice.domainspecific.domainId.size);
+		StringUtils_createStringFromBufferInBufferMax(domainName, request->choice.domainspecific.domainId.buf,
+				request->choice.domainspecific.domainId.size, sizeof(domainName));
 
-		StringUtils_createStringFromBufferInBuffer(itemName, request->choice.domainspecific.itemId.buf,
-				request->choice.domainspecific.itemId.size);
+		StringUtils_createStringFromBufferInBufferMax(itemName, request->choice.domainspecific.itemId.buf,
+				request->choice.domainspecific.itemId.size, sizeof(itemName));
 
 		MmsDevice* mmsDevice = MmsServer_getDevice(connection->server);
 
@@ -809,8 +809,8 @@ mmsServer_handleGetNamedVariableListAttributesRequest(
 			goto exit_function;
 		}
 
-		StringUtils_createStringFromBufferInBuffer(listName, request->choice.aaspecific.buf,
-				request->choice.aaspecific.size);
+		StringUtils_createStringFromBufferInBufferMax(listName, request->choice.aaspecific.buf,
+				request->choice.aaspecific.size, sizeof(listName));
 
 		MmsNamedVariableList varList = MmsServerConnection_getNamedVariableList(connection, listName);
 
@@ -847,8 +847,8 @@ mmsServer_handleGetNamedVariableListAttributesRequest(
 			goto exit_function;
 		}
 
-		StringUtils_createStringFromBufferInBuffer(listName, request->choice.vmdspecific.buf,
-				request->choice.vmdspecific.size);
+		StringUtils_createStringFromBufferInBufferMax(listName, request->choice.vmdspecific.buf,
+				request->choice.vmdspecific.size, sizeof(listName));
 
 		MmsDevice* mmsDevice = MmsServer_getDevice(connection->server);
 
