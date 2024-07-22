@@ -72,7 +72,7 @@ struct sTLSConfiguration {
     /* TLS minimum version allowed (default: TLS_VERSION_TLS_1_0) */
     TLSConfigVersion minVersion;
     
-    /* TLS minimum version allowed (default: TLS_VERSION_TLS_1_2) */
+    /* TLS maximum version allowed (default: TLS_VERSION_TLS_1_2) */
     TLSConfigVersion maxVersion;
 
     TLSConfiguration_EventHandler eventHandler;
@@ -308,7 +308,7 @@ TLSConfiguration_create()
 {
     TLSConfiguration self = (TLSConfiguration) GLOBAL_CALLOC(1, sizeof(struct sTLSConfiguration));
 
-    if (self != NULL)
+    if (self)
     {
         mbedtls_ssl_config_init( &(self->conf) );
         mbedtls_x509_crt_init( &(self->ownCertificate) );

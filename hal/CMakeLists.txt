@@ -209,6 +209,11 @@ IF(MINGW)
   target_link_libraries(hal ws2_32 iphlpapi)
 ENDIF(MINGW)
 
+IF (MSVC)
+  target_link_libraries(hal bcrypt)
+  target_link_libraries(hal-shared bcrypt)
+ENDIF()
+
 iF(WITH_WPCAP)
 target_link_libraries(hal
 	${CMAKE_CURRENT_SOURCE_DIR}/../third_party/winpcap/Lib/wpcap.lib
