@@ -40,7 +40,8 @@
 static bool
 prepareGooseBuffer(GoosePublisher self, CommParameters* parameters, const char* interfaceID, bool useVlanTags);
 
-struct sGoosePublisher {
+struct sGoosePublisher
+{
     uint8_t* buffer;
 
 #if (CONFIG_IEC61850_R_GOOSE == 1)
@@ -49,8 +50,10 @@ struct sGoosePublisher {
     uint16_t appId;
 #endif /* (CONFIG_IEC61850_R_GOOSE == 1) */
 
+#if (CONFIG_IEC61850_L2_GOOSE == 1)
     /* only for Ethernet based GOOSE */
     EthernetSocket ethernetSocket;
+#endif /* (CONFIG_IEC61850_L2_GOOSE == 1) */
 
     int lengthField;
     int payloadStart;
@@ -99,6 +102,7 @@ GoosePublisher_createRemote(RSession session, uint16_t appId)
 }
 #endif /* (CONFIG_IEC61850_R_GOOSE == 1) */
 
+#if (CONFIG_IEC61850_L2_GOOSE == 1)
 GoosePublisher
 GoosePublisher_createEx(CommParameters* parameters, const char* interfaceID, bool useVlanTag)
 {
@@ -127,15 +131,18 @@ GoosePublisher_create(CommParameters* parameters, const char* interfaceID)
 {
     return GoosePublisher_createEx(parameters, interfaceID, true);
 }
+#endif /* (CONFIG_IEC61850_L2_GOOSE == 1) */
 
 void
 GoosePublisher_destroy(GoosePublisher self)
 {
     if (self)
     {
+#if (CONFIG_IEC61850_L2_GOOSE == 1)
         if (self->ethernetSocket) {
             Ethernet_destroySocket(self->ethernetSocket);
         }
+#endif /* (CONFIG_IEC61850_L2_GOOSE == 1) */
 
         MmsValue_delete(self->timestamp);
 
@@ -242,6 +249,7 @@ GoosePublisher_setTimeAllowedToLive(GoosePublisher self, uint32_t timeAllowedToL
     self->timeAllowedToLive = timeAllowedToLive;
 }
 
+#if (CONFIG_IEC61850_L2_GOOSE == 1)
 static bool
 prepareGooseBuffer(GoosePublisher self, CommParameters* parameters, const char* interfaceID, bool useVlanTags)
 {
@@ -342,6 +350,7 @@ prepareGooseBuffer(GoosePublisher self, CommParameters* parameters, const char* 
         return false;
     }
 }
+#endif /* (CONFIG_IEC61850_L2_GOOSE == 1) */
 
 static int32_t
 createGoosePayload(GoosePublisher self, LinkedList dataSetValues, uint8_t* buffer, size_t maxPayloadSize)
@@ -460,7 +469,8 @@ createGoosePayload(GoosePublisher self, LinkedList dataSetValues, uint8_t* buffe
     {
         MmsValue* dataSetEntry = (MmsValue*) element->data;
 
-        if (dataSetEntry) {
+        if (dataSetEntry)
+        {
             bufPos = MmsValue_encodeMmsData(dataSetEntry, buffer, bufPos, true);
         }
         else {
@@ -490,7 +500,9 @@ GoosePublisher_publish(GoosePublisher self, LinkedList dataSet)
     if (self->sqNum == 0)
         self->sqNum = 1;
 
-    if (self->ethernetSocket) {
+#if (CONFIG_IEC61850_L2_GOOSE == 1)
+    if (self->ethernetSocket)
+    {
         int lengthIndex = self->lengthField;
 
         size_t gooseLength = self->payloadLength + 8;
@@ -503,9 +515,11 @@ GoosePublisher_publish(GoosePublisher self, LinkedList dataSet)
         if (DEBUG_GOOSE_PUBLISHER)
             printf("GOOSE_PUBLISHER: send GOOSE message\n");
     }
-#if (CONFIG_IEC61850_R_GOOSE == 1)
-    else if (self->remoteSession) {
+#endif /* (CONFIG_IEC61850_L2_GOOSE == 1) */
 
+#if (CONFIG_IEC61850_R_GOOSE == 1)
+    if (self->remoteSession)
+    {
         RSession_sendMessage(self->remoteSession, RSESSION_SPDU_ID_GOOSE, self->simulation, self->appId, buffer, self->payloadLength);
 
         if (DEBUG_GOOSE_PUBLISHER)

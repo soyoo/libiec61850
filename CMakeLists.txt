@@ -52,6 +52,8 @@ option(CONFIG_IEC61850_SERVICE_TRACKING "Build with support for IEC 61850 servic
 option(CONFIG_IEC61850_SETTING_GROUPS "Build with support for IEC 61850 setting group services" ON)
 option(CONFIG_IEC61850_SUPPORT_USER_READ_ACCESS_CONTROL "Allow user provided callback to control read access" ON)
 option(CONFIG_IEC61850_RCB_ALLOW_ONLY_PRECONFIGURED_CLIENT "allow only configured clients (when pre-configured by ClientLN)" OFF)
+option(CONFIG_IEC61850_L2_GOOSE "Build with support for L2 GOOSE (winpcap required on windows)" ON)
+option(CONFIG_IEC61850_L2_SMV "Build with support for L2 SMV (winpcap required on windows)" ON)
 option(CONFIG_IEC61850_R_GOOSE "Build with support for R-GOOSE (mbedtls required)" ON)
 option(CONFIG_IEC61850_R_SMV "Build with support for R-SMV (mbedtls required)" ON)
 option(CONFIG_IEC61850_SNTP_CLIENT "Build with SNTP client code" ON)
@@ -142,12 +144,17 @@ set(FOUND_SQLITE3_SOURCE 1)
 message("Found sqlite3 source in third_party folder -> can compile with log service support")
 endif(EXISTS ${CMAKE_CURRENT_LIST_DIR}/third_party/sqlite/sqlite3.h)
 
+if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/third_party/mbedtls/mbedtls-3.6.0)
+set(WITH_MBEDTLS3 1)
+set(MBEDTLS_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/third_party/mbedtls/mbedtls-3.6.0/include")
+else()
 if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/third_party/mbedtls/mbedtls-2.28)
 set(WITH_MBEDTLS 1)
 set(MBEDTLS_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/third_party/mbedtls/mbedtls-2.28/include")
 endif(EXISTS ${CMAKE_CURRENT_LIST_DIR}/third_party/mbedtls/mbedtls-2.28)
+endif(EXISTS ${CMAKE_CURRENT_LIST_DIR}/third_party/mbedtls/mbedtls-3.6.0)
 
-if(WITH_MBEDTLS)
+if(WITH_MBEDTLS OR WITH_MBEDTLS3)
 
 add_definitions(-DCONFIG_MMS_SUPPORT_TLS=1)
 
@@ -163,7 +170,12 @@ if (CONFIG_IEC61850_SNTP_CLIENT)
 set(BUILD_SNTP_CLIENT_EXAMPLES 1)
 endif (CONFIG_IEC61850_SNTP_CLIENT)
 
-endif(WITH_MBEDTLS)
+else(WITH_MBEDTLS OR WITH_MBEDTLS3)
+
+set(CONFIG_IEC61850_R_GOOSE 0)
+set(CONFIG_IEC61850_R_SMV 0)
+
+endif(WITH_MBEDTLS OR WITH_MBEDTLS3)
 
 include(CheckCCompilerFlag)
 

@@ -68,10 +68,10 @@
 /* #define CONFIG_ETHERNET_INTERFACE_ID "vboxnet0" */
 /* #define CONFIG_ETHERNET_INTERFACE_ID "en0"  // OS X uses enX in place of ethX as ethernet NIC names. */
 
-/* Set to 1 to include GOOSE support in the build. Otherwise set to 0 */
+/* Set to 1 to include generic GOOSE support in the build. Otherwise set to 0 */
 #cmakedefine01 CONFIG_INCLUDE_GOOSE_SUPPORT
 
-/* Set to 1 to include Sampled Values support in the build. Otherwise set to 0 */
+/* Set to 1 to include generic Sampled Values support in the build. Otherwise set to 0 */
 #define CONFIG_IEC61850_SAMPLED_VALUES_SUPPORT 1
 
 /* compile with support for R-GOOSE (mbedtls requried) */
@@ -79,6 +79,12 @@
 
 /* compile with support for R-SMV (mbedtls required) */
 #cmakedefine01 CONFIG_IEC61850_R_SMV
+
+/* compile with support for L2 GOOSE */
+#cmakedefine01 CONFIG_IEC61850_L2_GOOSE
+
+/* compile with support for L2 SMV */
+#cmakedefine01 CONFIG_IEC61850_L2_SMV
 
 /* compile SNTP client code */
 #cmakedefine01 CONFIG_IEC61850_SNTP_CLIENT
@@ -88,12 +94,16 @@
 
 #ifdef _WIN32
 
-/* GOOSE will be disabled for Windows if ethernet support (winpcap) is not available */
+/* L2 GOOSE/SMV will be disabled for Windows if ethernet support (winpcap) is not available */
 #ifdef EXCLUDE_ETHERNET_WINDOWS
-#ifdef CONFIG_INCLUDE_GOOSE_SUPPORT
-#undef CONFIG_INCLUDE_GOOSE_SUPPORT
+#ifdef CONFIG_IEC61850_L2_GOOSE
+#undef CONFIG_IEC61850_L2_GOOSE
 #endif
-#define CONFIG_INCLUDE_GOOSE_SUPPORT 0
+#ifdef CONFIG_IEC61850_L2_SMV
+#undef CONFIG_IEC61850_L2_SMV
+#endif
+#define CONFIG_IEC61850_L2_GOOSE 0
+#define CONFIG_IEC61850_L2_SMV 0
 #define CONFIG_INCUDE_ETHERNET_WINDOWS 0
 #else
 #define CONFIG_INCLUDE_ETHERNET_WINDOWS 1

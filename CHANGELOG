@@ -17,11 +17,13 @@ Other changes:
 
 - Ethernet(Linux): Set to promisc mode by default
 - removed legacy defines for report reasons (#449)
+- removed legacy compatibility functions for SV subscriner ("SVClientaSDU_")
 
 Fixed bugs and vulnerabilities:
 
-- fixed out-of-bound read in parseAarePdu function (LIB61850-442)(#513)
-- ACSE: fixed out-of-bounds read in parseAarqPdu function (LIB61850-441)(#512)
+- Vulnerability: fixed potential stack buffer overflow in MMS client identity service and other services (LIB61850-447)
+- Vulnerability: fixed out-of-bound read in parseAarePdu function (LIB61850-442)(#513)
+- Vulnerability: ACSE: fixed out-of-bounds read in parseAarqPdu function (LIB61850-441)(#512)
 - GOOSE receiver: added additional length and plausibility checks to fix #509
 - MmsValue_decodeMmsData: add support for empty visible-string, mms-string, and octet-string values (#506)
 - MMS client: fixed - getNameList task can get stuck in while loop when message cannot be sent (LIB61850-347)
@@ -32,7 +34,7 @@ Fixed bugs and vulnerabilities:
 - MMS server: fixed - server is sending data set response larger than negotiated MMS PDU size (LIB61850-435)
 - fixed - potential race condition when using IedConnection_installReportHandler and IedConnection_uninstallReportHandler
 - fixed - IEC 61580 server: dataset is not released when RCB.Datset is set to empty string by client (LIB61850-425)
-- MMS client: fixed - parsing of servicecsSupported in MMS init response is off by one (LIB61850-419)(#469)
+- Vulnerability: MMS client: fixed - parsing of servicecsSupported in MMS init response is off by one (LIB61850-419)(#469)
 
 
 

@@ -3,7 +3,7 @@
  *
  *  Implementation of RSessionCrypto interface using mbedtls
  *
- *  Copyright 2013-2023 Michael Zillgith
+ *  Copyright 2013-2024 Michael Zillgith
  *
  *  This file is part of libIEC61850.
  *
@@ -25,7 +25,6 @@
 
 #include "mbedtls/cipher.h"
 #include "mbedtls/md.h"
-#include "mbedtls/md_internal.h"
 #include "mbedtls/platform_util.h"
 #include "mbedtls/gcm.h"
 #include "mbedtls/entropy.h"
@@ -42,7 +41,7 @@
 bool
 RSessionCrypto_createHMAC(uint8_t* buffer, int bufSize, uint8_t* key, int keySize, uint8_t* hmac, int hmacMaxSize)
 {
-    const mbedtls_md_info_t* md_info = &mbedtls_sha256_info;
+    const mbedtls_md_info_t* md_info = mbedtls_md_info_from_type(MBEDTLS_MD_SHA256);
 
     mbedtls_md_context_t md_ctx;
 
