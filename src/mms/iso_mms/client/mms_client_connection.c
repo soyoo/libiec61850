@@ -3579,6 +3579,7 @@ MmsJournalEntry_destroy(MmsJournalEntry self)
         MmsValue_delete(self->occurenceTime);
         LinkedList_destroyDeep(self->journalVariables,
                 (LinkedListValueDeleteFunction) MmsJournalVariable_destroy);
+
         GLOBAL_FREEMEM(self);
     }
 }
