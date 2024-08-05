@@ -152,9 +152,14 @@ exit_with_error:
     return -1;
 }
 
-MmsValue*
-MmsValue_decodeMmsData(uint8_t* buffer, int bufPos, int bufferLength, int* endBufPos)
+static MmsValue*
+MmsValue_decodeMmsDataRecursive(uint8_t* buffer, int bufPos, int bufferLength, int* endBufPos, int depth, int maxDepth)
 {
+    depth++;
+
+    if (depth > maxDepth)
+        return NULL;
+
     MmsValue* value = NULL;
 
     int dataEndBufPos = bufferLength;
@@ -206,7 +211,7 @@ MmsValue_decodeMmsData(uint8_t* buffer, int bufPos, int bufferLength, int* endBu
 
             int elementBufLength = newBufPos - bufPos + elementLength;
 
-            MmsValue* elementValue = MmsValue_decodeMmsData(buffer, bufPos, bufPos + elementBufLength, NULL);
+            MmsValue* elementValue = MmsValue_decodeMmsDataRecursive(buffer, bufPos, bufPos + elementBufLength, NULL, depth, maxDepth);
 
             if (elementValue == NULL)
                 goto exit_with_error;
@@ -336,6 +341,18 @@ exit_with_error:
         MmsValue_delete(value);
 
     return NULL;
+}
+
+MmsValue*
+MmsValue_decodeMmsDataMaxRecursion(uint8_t* buffer, int bufPos, int bufferLength, int* endBufPos, int maxDepth)
+{
+    return MmsValue_decodeMmsDataRecursive(buffer, bufPos, bufferLength, endBufPos, 0, maxDepth);
+}
+
+MmsValue*
+MmsValue_decodeMmsData(uint8_t* buffer, int bufPos, int bufferLength, int* endBufPos)
+{
+    return MmsValue_decodeMmsDataMaxRecursion(buffer, bufPos, bufferLength, endBufPos, 25);
 }
 
 static int
