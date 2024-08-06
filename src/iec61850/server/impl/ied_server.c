@@ -1,7 +1,7 @@
 /*
  *  ied_server.c
  *
- *  Copyright 2013-2023 Michael Zillgith
+ *  Copyright 2013-2024 Michael Zillgith
  *
  *  This file is part of libIEC61850.
  *
@@ -48,15 +48,17 @@ createControlObjects(IedServer self, MmsDomain* domain, char* lnName, MmsVariabl
 
     bool success = false;
 
-    if (typeSpec->type == MMS_STRUCTURE) {
+    if (typeSpec->type == MMS_STRUCTURE)
+    {
         int coCount = typeSpec->typeSpec.structure.elementCount;
         int i;
-        for (i = 0; i < coCount; i++) {
-
+        for (i = 0; i < coCount; i++)
+        {
             char objectName[65];
             objectName[0] = 0;
 
-            if (namePrefix != NULL) {
+            if (namePrefix != NULL)
+            {
                 StringUtils_concatString(objectName, 65, namePrefix, "$");
             }
 
@@ -70,33 +72,39 @@ createControlObjects(IedServer self, MmsDomain* domain, char* lnName, MmsVariabl
 
             MmsVariableSpecification* coSpec = typeSpec->typeSpec.structure.elements[i];
 
-            if (coSpec->type == MMS_STRUCTURE) {
-
+            if (coSpec->type == MMS_STRUCTURE)
+            {
                 int coElementCount = coSpec->typeSpec.structure.elementCount;
 
                 MmsVariableSpecification* operSpec = NULL;
 
                 int j;
-                for (j = 0; j < coElementCount; j++) {
+                for (j = 0; j < coElementCount; j++)
+                {
                     MmsVariableSpecification* coElementSpec = coSpec->typeSpec.structure.elements[j];
 
-                    if (strcmp(coElementSpec->name, "Oper") == 0) {
+                    if (strcmp(coElementSpec->name, "Oper") == 0)
+                    {
                         operSpec = coElementSpec;
                         operIndex = j;
                     }
-                    else if (strcmp(coElementSpec->name, "Cancel") == 0) {
+                    else if (strcmp(coElementSpec->name, "Cancel") == 0)
+                    {
                         hasCancel = true;
                         cancelIndex = j;
                     }
-                    else if (strcmp(coElementSpec->name, "SBOw") == 0) {
+                    else if (strcmp(coElementSpec->name, "SBOw") == 0)
+                    {
                         hasSBOw = true;
                         sBOwIndex = j;
                     }
-                    else if ((strcmp(coElementSpec->name, "SBO") == 0)) {
+                    else if ((strcmp(coElementSpec->name, "SBO") == 0))
+                    {
                         hasSBO = true;
                         sBOIndex = j;
                     }
-                    else {
+                    else
+                    {
                         if (DEBUG_IED_SERVER)
                             printf("IED_SERVER: createControlObjects: Unknown element in CO: %s\n", coElementSpec->name);
 
@@ -106,8 +114,8 @@ createControlObjects(IedServer self, MmsDomain* domain, char* lnName, MmsVariabl
 
                 StringUtils_appendString(objectName, 65, coSpec->name);
 
-                if (operSpec) {
-
+                if (operSpec)
+                {
                     if (DEBUG_IED_SERVER)
                         printf("IED_SERVER: create control object LN:%s DO:%s\n", lnName, objectName);
 
@@ -118,7 +126,8 @@ createControlObjects(IedServer self, MmsDomain* domain, char* lnName, MmsVariabl
 
                     MmsValue* structure = MmsValue_newDefaultValue(coSpec);
 
-                    if (structure == NULL) {
+                    if (structure == NULL)
+                    {
                         ControlObject_destroy(controlObject);
                         goto exit_function;
                     }
@@ -140,7 +149,8 @@ createControlObjects(IedServer self, MmsDomain* domain, char* lnName, MmsVariabl
 
                     MmsMapping_addControlObject(mapping, controlObject);
                 }
-                else {
+                else
+                {
                     if (createControlObjects(self, domain, lnName, coSpec, objectName) == false)
                         goto exit_function;
                 }
@@ -164,14 +174,15 @@ createMmsServerCache(IedServer self)
 
     int domain = 0;
 
-    for (domain = 0; domain < self->mmsDevice->domainCount; domain++) {
-
+    for (domain = 0; domain < self->mmsDevice->domainCount; domain++)
+    {
         /* Install all top level MMS named variables (=Logical nodes) in the MMS server cache */
         MmsDomain* logicalDevice = self->mmsDevice->domains[domain];
 
         int i;
 
-        for (i = 0; i < logicalDevice->namedVariablesCount; i++) {
+        for (i = 0; i < logicalDevice->namedVariablesCount; i++)
+        {
             char* lnName = logicalDevice->namedVariables[i]->name;
 
             if (DEBUG_IED_SERVER)
@@ -180,13 +191,15 @@ createMmsServerCache(IedServer self)
             int fcCount = logicalDevice->namedVariables[i]->typeSpec.structure.elementCount;
             int j;
 
-            for (j = 0; j < fcCount; j++) {
+            for (j = 0; j < fcCount; j++)
+            {
                 MmsVariableSpecification* fcSpec = logicalDevice->namedVariables[i]->typeSpec.structure.elements[j];
 
                 char* fcName = fcSpec->name;
 
 #if (CONFIG_IEC61850_CONTROL_SERVICE == 1)
-                if (strcmp(fcName, "CO") == 0) {
+                if (strcmp(fcName, "CO") == 0)
+                {
                     createControlObjects(self, logicalDevice, lnName, fcSpec, NULL);
                 }
                 else
@@ -236,18 +249,21 @@ static void
 installDefaultValuesForDataAttribute(IedServer self, LogicalDevice* ld, DataAttribute* dataAttribute,
         char* objectReference, int position, int idx, char* componentId, int compIdPos)
 {
-    if (dataAttribute->name) {
+    if (dataAttribute->name)
+    {
         if (idx == -1) {
             sprintf(objectReference + position, ".%s", dataAttribute->name);
         }
-        else {
+        else
+        {
             if (compIdPos == 0)
                 sprintf(componentId, "%s", dataAttribute->name);
             else
                 sprintf(componentId + compIdPos, "$%s", dataAttribute->name);
         }
     }
-    else {
+    else
+    {
         if (compIdPos == 0)
             componentId[0] = 0;
     }
@@ -260,20 +276,23 @@ installDefaultValuesForDataAttribute(IedServer self, LogicalDevice* ld, DataAttr
 
     char domainName[65];
 
-    if (ld->ldName == NULL) {
+    if (ld->ldName == NULL)
+    {
         char ldInst[65];
 
         MmsMapping_getMmsDomainFromObjectReference(objectReference, ldInst);
 
         StringUtils_concatString(domainName, 65, self->model->name, ldInst);
     }
-    else {
+    else
+    {
         StringUtils_copyStringMax(domainName, 65, ld->ldName);
     }
 
     MmsDomain* domain = MmsDevice_getDomain(self->mmsDevice, domainName);
 
-    if (domain == NULL) {
+    if (domain == NULL)
+    {
         if (DEBUG_IED_SERVER)
             printf("Error domain (%s) not found for %s!\n", domainName, objectReference);
         return;
@@ -288,9 +307,9 @@ installDefaultValuesForDataAttribute(IedServer self, LogicalDevice* ld, DataAttr
 
     dataAttribute->mmsValue = cacheValue;
 
-    if (value != NULL) {
-
-        if (cacheValue != NULL)
+    if (value)
+    {
+        if (cacheValue)
             MmsValue_update(cacheValue, value);
 
         #if (DEBUG_IED_SERVER == 1)
@@ -305,14 +324,16 @@ installDefaultValuesForDataAttribute(IedServer self, LogicalDevice* ld, DataAttr
     int childPosition = strlen(objectReference);
     int childCompIdPos = strlen(componentId);
 
-    if (dataAttribute->elementCount > 0) {
+    if (dataAttribute->elementCount > 0)
+    {
         int subIdx = 0;
 
         DataAttribute* subDataAttribute = (DataAttribute*) dataAttribute->firstChild;
 
         int childIdPos = childCompIdPos;
 
-        while (subDataAttribute != NULL) {
+        while (subDataAttribute)
+        {
             installDefaultValuesForDataAttribute(self, ld, subDataAttribute, objectReference, childPosition, subIdx, componentId, childIdPos);
 
             subIdx++;
@@ -320,12 +341,14 @@ installDefaultValuesForDataAttribute(IedServer self, LogicalDevice* ld, DataAttr
             subDataAttribute = (DataAttribute*) subDataAttribute->sibling;
         }
     }
-    else {
+    else
+    {
         DataAttribute* subDataAttribute = (DataAttribute*) dataAttribute->firstChild;
 
         int childIdPos = childCompIdPos;
 
-        while (subDataAttribute != NULL) {
+        while (subDataAttribute)
+        {
             installDefaultValuesForDataAttribute(self, ld, subDataAttribute, objectReference, childPosition, idx, componentId, childIdPos);
 
             subDataAttribute = (DataAttribute*) subDataAttribute->sibling;
@@ -337,7 +360,8 @@ static void
 installDefaultValuesForDataObject(IedServer self, LogicalDevice* ld, DataObject* dataObject,
         char* objectReference, int position, int idx, char* componentId, int compIdPos)
 {
-    if (dataObject->elementCount > 0) {
+    if (dataObject->elementCount > 0)
+    {
         if (DEBUG_IED_SERVER)
             printf("IED_SERVER: DataObject %s is an array\n", dataObject->name);
 
@@ -348,7 +372,8 @@ installDefaultValuesForDataObject(IedServer self, LogicalDevice* ld, DataObject*
 
         int arrayIdx = 0;
 
-        while (arrayElemNode) {
+        while (arrayElemNode)
+        {
             installDefaultValuesForDataObject(self, ld, (DataObject*)arrayElemNode, objectReference, childPosition, arrayIdx, componentId, compIdPos);
 
             arrayIdx++;
@@ -358,10 +383,14 @@ installDefaultValuesForDataObject(IedServer self, LogicalDevice* ld, DataObject*
         return;
     }
 
-    if (dataObject->arrayIndex == -1) {
+    if (dataObject->arrayIndex == -1)
+    {
         if (idx == -1)
+        {
             sprintf(objectReference + position, ".%s", dataObject->name);
-        else {
+        }
+        else
+        {
             if (compIdPos == 0)
                 sprintf(componentId, "%s", dataObject->name);
             else
@@ -377,11 +406,14 @@ installDefaultValuesForDataObject(IedServer self, LogicalDevice* ld, DataObject*
     int childPosition = strlen(objectReference);
     int childCompIdPos = strlen(componentId);
 
-    while (childNode) {
-        if (childNode->modelType == DataObjectModelType) {
+    while (childNode)
+    {
+        if (childNode->modelType == DataObjectModelType)
+        {
             installDefaultValuesForDataObject(self, ld, (DataObject*) childNode, objectReference, childPosition, idx, componentId, childCompIdPos);
         }
-        else if (childNode->modelType == DataAttributeModelType) {
+        else if (childNode->modelType == DataAttributeModelType)
+        {
             installDefaultValuesForDataAttribute(self, ld, (DataAttribute*) childNode, objectReference, childPosition, idx, componentId, childCompIdPos);
         }
 
@@ -399,11 +431,10 @@ installDefaultValuesInCache(IedServer self)
 
     char objectReference[130];
 
-
     LogicalDevice* logicalDevice = model->firstChild;
 
-    while (logicalDevice != NULL) {
-
+    while (logicalDevice)
+    {
         if (logicalDevice->ldName)
             sprintf(objectReference, "%s", logicalDevice->ldName);
         else
@@ -413,14 +444,16 @@ installDefaultValuesInCache(IedServer self)
 
         char* nodeReference = objectReference + strlen(objectReference);
 
-        while (logicalNode != NULL) {
+        while (logicalNode)
+        {
             sprintf(nodeReference, "/%s", logicalNode->name);
 
             DataObject* dataObject = (DataObject*) logicalNode->firstChild;
 
             int refPosition = strlen(objectReference);
 
-            while (dataObject != NULL) {
+            while (dataObject)
+            {
                 componentId[0] = 0;
                 installDefaultValuesForDataObject(self, logicalDevice, dataObject, objectReference, refPosition, -1, componentId, 0);
 
@@ -441,25 +474,27 @@ updateDataSetsWithCachedValues(IedServer self)
 
     int iedNameLength = strlen(self->model->name);
 
-    if (iedNameLength <= 64) {
-
-        while (dataSet != NULL) {
-
+    if (iedNameLength <= 64)
+    {
+        while (dataSet)
+        {
             DataSetEntry* dataSetEntry = dataSet->fcdas;
 
-            while (dataSetEntry != NULL) {
-
+            while (dataSetEntry)
+            {
                 MmsDomain* domain = NULL;
 
                 LogicalDevice* ld = IedModel_getDeviceByInst(self->model, dataSetEntry->logicalDeviceName);
 
-                if (ld) {
-
-                    if (ld->ldName) {
+                if (ld)
+                {
+                    if (ld->ldName)
+                    {
                         domain = MmsDevice_getDomain(self->mmsDevice, ld->ldName);
                     }
 
-                    if (domain == NULL) {
+                    if (domain == NULL)
+                    {
                         char domainName[65];
 
                         StringUtils_concatString(domainName, 65, self->model->name, dataSetEntry->logicalDeviceName);
@@ -468,7 +503,8 @@ updateDataSetsWithCachedValues(IedServer self)
                     }
 
                 }
-                else {
+                else
+                {
                     if (DEBUG_IED_SERVER)
                         printf("IED_SERVER: ERROR - LD %s not found\n", dataSetEntry->logicalDeviceName);
                 }
@@ -482,52 +518,63 @@ updateDataSetsWithCachedValues(IedServer self)
 
                 MmsValue* value = MmsServer_getValueFromCacheEx(self->mmsServer, domain, variableName, &typeSpec);
 
-                if (value == NULL) {
-                    if (DEBUG_IED_SERVER) {
+                if (value == NULL)
+                {
+                    if (DEBUG_IED_SERVER)
+                    {
                         printf("IED_SERVER: LD: %s dataset: %s : error cannot get value from cache for %s -> %s!\n",
                                 dataSet->logicalDeviceName, dataSet->name,
                                 dataSetEntry->logicalDeviceName,
                                 dataSetEntry->variableName);
                     }
                 }
-                else {
+                else
+                {
                     /* check if array element */
 
-                    if (dataSetEntry->index != -1) {
-                        if (typeSpec->type == MMS_ARRAY) {
+                    if (dataSetEntry->index != -1)
+                    {
+                        if (typeSpec->type == MMS_ARRAY)
+                        {
                             MmsValue* elementValue = MmsValue_getElement(value, dataSetEntry->index);
 
-                            if (elementValue) {
-
-                                if (dataSetEntry->componentName) {
+                            if (elementValue)
+                            {
+                                if (dataSetEntry->componentName)
+                                {
                                     MmsVariableSpecification* elementType = typeSpec->typeSpec.array.elementTypeSpec;
 
                                     MmsValue* subElementValue = MmsVariableSpecification_getChildValue(elementType, elementValue, dataSetEntry->componentName);
 
-                                    if (subElementValue) {
+                                    if (subElementValue)
+                                    {
                                         dataSetEntry->value = subElementValue;
                                     }
-                                    else {
+                                    else
+                                    {
                                         if (DEBUG_IED_SERVER)
                                             printf("IED_SERVER: ERROR - component %s of array element not found\n", dataSetEntry->componentName);
                                     }
-
                                 }
-                                else {
+                                else
+                                {
                                     dataSetEntry->value = elementValue;
                                 }
                             }
-                            else {
+                            else
+                            {
                                 if (DEBUG_IED_SERVER)
                                     printf("IED_SERVER: ERROR - array element %i not found\n", dataSetEntry->index);
                             }
                         }
-                        else {
+                        else
+                        {
                             if (DEBUG_IED_SERVER)
                                 printf("IED_SERVER: ERROR - variable %s/%s is not an array\n", dataSetEntry->logicalDeviceName, dataSetEntry->variableName);
                         }
                     }
-                    else {
+                    else
+                    {
                         dataSetEntry->value = value;
                     }
                 }
@@ -707,9 +754,11 @@ IedServer_setRCBEventHandler(IedServer self, IedServer_RCBEventHandler handler, 
 void
 IedServer_destroy(IedServer self)
 {
-    if (self) {
+    if (self)
+    {
     /* Stop server if running */
-        if (self->running) {
+        if (self->running)
+        {
 #if (CONFIG_MMS_THREADLESS_STACK == 1)
             IedServer_stopThreadless(self);
 #else
@@ -726,7 +775,7 @@ IedServer_destroy(IedServer self)
 
         MmsServer_destroy(self->mmsServer);
 
-        if (self->localIpAddress != NULL)
+        if (self->localIpAddress)
             GLOBAL_FREEMEM(self->localIpAddress);
 
         if (self->mmsMapping)
@@ -781,7 +830,8 @@ singleThreadedServerThread(void* parameter)
     if (DEBUG_IED_SERVER)
         printf("IED_SERVER: server thread started!\n");
 
-    while (running) {
+    while (running)
+    {
         MmsServer_handleIncomingMessages(self->mmsServer);
 
         IedServer_performPeriodicTasks(self);
@@ -799,8 +849,8 @@ singleThreadedServerThread(void* parameter)
 void
 IedServer_start(IedServer self, int tcpPort)
 {
-    if (self->running == false) {
-
+    if (self->running == false)
+    {
 #if (CONFIG_MMS_SINGLE_THREADED == 1)
         MmsServer_startListeningThreadless(self->mmsServer, tcpPort);
 
@@ -835,7 +885,8 @@ IedServer_getDataModel(IedServer self)
 void
 IedServer_stop(IedServer self)
 {
-    if (self->running) {
+    if (self->running)
+    {
         self->running = false;
 
         MmsMapping_stopEventWorkerThread(self->mmsMapping);
@@ -864,7 +915,7 @@ IedServer_setFilestoreBasepath(IedServer self, const char* basepath)
 void
 IedServer_setLocalIpAddress(IedServer self, const char* localIpAddress)
 {
-    if (self->localIpAddress != NULL)
+    if (self->localIpAddress)
         GLOBAL_FREEMEM(self->localIpAddress);
 
     self->localIpAddress = StringUtils_copyString(localIpAddress);
@@ -876,7 +927,8 @@ IedServer_setLocalIpAddress(IedServer self, const char* localIpAddress)
 void
 IedServer_startThreadless(IedServer self, int tcpPort)
 {
-    if (self->running == false) {
+    if (self->running == false)
+    {
         MmsServer_startListeningThreadless(self->mmsServer, tcpPort);
         self->running = true;
     }
@@ -903,10 +955,12 @@ IedServer_processIncomingData(IedServer self)
 bool
 IedServer_addAccessPoint(IedServer self, const char* ipAddr, int tcpPort, TLSConfiguration tlsConfiguration)
 {
-    if (self->mmsServer) {
+    if (self->mmsServer)
+    {
         return MmsServer_addAP(self->mmsServer, ipAddr, tcpPort, tlsConfiguration);
     }
-    else {
+    else
+    {
         return false;
     }
 }
@@ -914,7 +968,8 @@ IedServer_addAccessPoint(IedServer self, const char* ipAddr, int tcpPort, TLSCon
 void
 IedServer_stopThreadless(IedServer self)
 {
-    if (self->running) {
+    if (self->running)
+    {
         self->running = false;
 
         MmsServer_stopListeningThreadless(self->mmsServer);
@@ -1198,8 +1253,8 @@ static inline void
 checkForUpdateTrigger(IedServer self, DataAttribute* dataAttribute)
 {
 #if ((CONFIG_IEC61850_REPORT_SERVICE == 1) || (CONFIG_IEC61850_LOG_SERVICE == 1))
-    if (dataAttribute->triggerOptions & TRG_OPT_DATA_UPDATE) {
-
+    if (dataAttribute->triggerOptions & TRG_OPT_DATA_UPDATE)
+    {
 #if (CONFIG_IEC61850_REPORT_SERVICE == 1)
         MmsMapping_triggerReportObservers(self->mmsMapping, dataAttribute->mmsValue,
                 REPORT_CONTROL_VALUE_UPDATE);
@@ -1253,8 +1308,6 @@ checkForChangedTriggers(IedServer self, DataAttribute* dataAttribute)
 
     }
 #endif /* (CONFIG_IEC61850_REPORT_SERVICE== 1) || (CONFIG_INCLUDE_GOOSE_SUPPORT == 1) */
-
-
 }
 
 void
@@ -1264,13 +1317,15 @@ IedServer_updateAttributeValue(IedServer self, DataAttribute* dataAttribute, Mms
     assert(dataAttribute != NULL);
     assert(MmsValue_getType(dataAttribute->mmsValue) == MmsValue_getType(value));
 
-    if (MmsValue_equals(dataAttribute->mmsValue, value) == false) {
-
-        if (dataAttribute->type == IEC61850_BOOLEAN) {
+    if (MmsValue_equals(dataAttribute->mmsValue, value) == false)
+    {
+        if (dataAttribute->type == IEC61850_BOOLEAN)
+        {
             /* Special treatment because of transient option */
             IedServer_updateBooleanAttributeValue(self, dataAttribute, MmsValue_getBoolean(value));
         }
-        else {
+        else
+        {
 #if (CONFIG_MMS_THREADLESS_STACK != 1)
             Semaphore_wait(self->dataModelLock);
 #endif
@@ -1297,8 +1352,8 @@ IedServer_updateFloatAttributeValue(IedServer self, DataAttribute* dataAttribute
 
     float currentValue = MmsValue_toFloat(dataAttribute->mmsValue);
 
-    if (currentValue != value) {
-
+    if (currentValue != value)
+    {
 #if (CONFIG_MMS_THREADLESS_STACK != 1)
         Semaphore_wait(self->dataModelLock);
 #endif
@@ -1321,8 +1376,8 @@ IedServer_updateInt32AttributeValue(IedServer self, DataAttribute* dataAttribute
 
     int32_t currentValue = MmsValue_toInt32(dataAttribute->mmsValue);
 
-    if (currentValue != value) {
-
+    if (currentValue != value)
+    {
 #if (CONFIG_MMS_THREADLESS_STACK != 1)
         Semaphore_wait(self->dataModelLock);
 #endif
@@ -1342,8 +1397,8 @@ IedServer_updateDbposValue(IedServer self, DataAttribute* dataAttribute, Dbpos v
 {
     Dbpos currentValue = Dbpos_fromMmsValue(dataAttribute->mmsValue);
 
-    if (currentValue != value) {
-
+    if (currentValue != value)
+    {
 #if (CONFIG_MMS_THREADLESS_STACK != 1)
         Semaphore_wait(self->dataModelLock);
 #endif
@@ -1367,8 +1422,8 @@ IedServer_updateInt64AttributeValue(IedServer self, DataAttribute* dataAttribute
 
     int64_t currentValue = MmsValue_toInt64(dataAttribute->mmsValue);
 
-    if (currentValue != value) {
-
+    if (currentValue != value)
+    {
 #if (CONFIG_MMS_THREADLESS_STACK != 1)
         Semaphore_wait(self->dataModelLock);
 #endif
@@ -1392,8 +1447,8 @@ IedServer_updateUnsignedAttributeValue(IedServer self, DataAttribute* dataAttrib
 
     uint32_t currentValue = MmsValue_toUint32(dataAttribute->mmsValue);
 
-    if (currentValue != value) {
-
+    if (currentValue != value)
+    {
 #if (CONFIG_MMS_THREADLESS_STACK != 1)
         Semaphore_wait(self->dataModelLock);
 #endif
@@ -1417,8 +1472,8 @@ IedServer_updateBitStringAttributeValue(IedServer self, DataAttribute* dataAttri
 
     uint32_t currentValue = MmsValue_getBitStringAsInteger(dataAttribute->mmsValue);
 
-    if (currentValue != value) {
-
+    if (currentValue != value)
+    {
 #if (CONFIG_MMS_THREADLESS_STACK != 1)
         Semaphore_wait(self->dataModelLock);
 #endif
@@ -1442,10 +1497,12 @@ IedServer_updateBooleanAttributeValue(IedServer self, DataAttribute* dataAttribu
 
     bool currentValue = MmsValue_getBoolean(dataAttribute->mmsValue);
 
-    if (currentValue != value) {
+    if (currentValue != value)
+    {
         bool callCheckTriggers = true;
 
-        if (dataAttribute->triggerOptions & TRG_OPT_TRANSIENT) {
+        if (dataAttribute->triggerOptions & TRG_OPT_TRANSIENT)
+        {
             if (currentValue == true)
                 callCheckTriggers = false;
         }
@@ -1474,7 +1531,8 @@ IedServer_updateVisibleStringAttributeValue(IedServer self, DataAttribute* dataA
 
     const char* currentValue = MmsValue_toString(dataAttribute->mmsValue);
 
-    if (strcmp(currentValue, value)) {
+    if (strcmp(currentValue, value))
+    {
 #if (CONFIG_MMS_THREADLESS_STACK != 1)
         Semaphore_wait(self->dataModelLock);
 #endif
@@ -1498,8 +1556,8 @@ IedServer_updateUTCTimeAttributeValue(IedServer self, DataAttribute* dataAttribu
 
     uint64_t currentValue = MmsValue_getUtcTimeInMs(dataAttribute->mmsValue);
 
-    if (currentValue != value) {
-
+    if (currentValue != value)
+    {
 #if (CONFIG_MMS_THREADLESS_STACK != 1)
         Semaphore_wait(self->dataModelLock);
 #endif
@@ -1521,8 +1579,8 @@ IedServer_updateTimestampAttributeValue(IedServer self, DataAttribute* dataAttri
     assert(MmsValue_getType(dataAttribute->mmsValue) == MMS_UTC_TIME);
     assert(self != NULL);
 
-    if (memcmp(dataAttribute->mmsValue->value.utcTime, timestamp->val, 8)) {
-
+    if (memcmp(dataAttribute->mmsValue->value.utcTime, timestamp->val, 8))
+    {
 #if (CONFIG_MMS_THREADLESS_STACK != 1)
         Semaphore_wait(self->dataModelLock);
 #endif
@@ -1547,7 +1605,8 @@ IedServer_updateQuality(IedServer self, DataAttribute* dataAttribute, Quality qu
 
     uint32_t oldQuality = MmsValue_getBitStringAsInteger(dataAttribute->mmsValue);
 
-    if (oldQuality != (uint32_t) quality) {
+    if (oldQuality != (uint32_t) quality)
+    {
 #if (CONFIG_MMS_THREADLESS_STACK != 1)
         Semaphore_wait(self->dataModelLock);
 #endif
@@ -1611,8 +1670,10 @@ IedServer_disableGoosePublishing(IedServer self)
 void
 IedServer_setWriteAccessPolicy(IedServer self, FunctionalConstraint fc, AccessPolicy policy)
 {
-    if (policy == ACCESS_POLICY_ALLOW) {
-        switch (fc) {
+    if (policy == ACCESS_POLICY_ALLOW)
+    {
+        switch (fc)
+        {
         case IEC61850_FC_DC:
             self->writeAccessPolicies |= ALLOW_WRITE_ACCESS_DC;
             break;
@@ -1632,8 +1693,10 @@ IedServer_setWriteAccessPolicy(IedServer self, FunctionalConstraint fc, AccessPo
             break;
         }
     }
-    else {
-        switch (fc) {
+    else
+    {
+        switch (fc)
+        {
         case IEC61850_FC_DC:
             self->writeAccessPolicies &= ~ALLOW_WRITE_ACCESS_DC;
             break;
@@ -1658,11 +1721,13 @@ IedServer_setWriteAccessPolicy(IedServer self, FunctionalConstraint fc, AccessPo
 void
 IedServer_handleWriteAccess(IedServer self, DataAttribute* dataAttribute, WriteAccessHandler handler, void* parameter)
 {
-    if (dataAttribute == NULL) {
+    if (dataAttribute == NULL)
+    {
         if (DEBUG_IED_SERVER)
             printf("IED_SERVER: IedServer_handleWriteAccess - dataAttribute == NULL!\n");
     }
-    else {
+    else
+    {
         MmsMapping_installWriteAccessHandler(self->mmsMapping, dataAttribute, handler, parameter);
     }
 }
@@ -1670,16 +1735,19 @@ IedServer_handleWriteAccess(IedServer self, DataAttribute* dataAttribute, WriteA
 void
 IedServer_handleWriteAccessForComplexAttribute(IedServer self, DataAttribute* dataAttribute, WriteAccessHandler handler, void* parameter)
 {
-    if (dataAttribute == NULL) {
+    if (dataAttribute == NULL)
+    {
         if (DEBUG_IED_SERVER)
             printf("IED_SERVER: IedServer_handleWriteAccessForComplexAttribute - dataAttribute == NULL!\n");
     }
-    else {
+    else
+    {
         MmsMapping_installWriteAccessHandler(self->mmsMapping, dataAttribute, handler, parameter);
 
         DataAttribute* subDa = (DataAttribute*) dataAttribute->firstChild;
 
-        while (subDa) {
+        while (subDa)
+        {
             IedServer_handleWriteAccessForComplexAttribute(self, subDa, handler, parameter);
 
             subDa = (DataAttribute*) subDa->sibling;
@@ -1690,7 +1758,8 @@ IedServer_handleWriteAccessForComplexAttribute(IedServer self, DataAttribute* da
 void
 IedServer_handleWriteAccessForDataObject(IedServer self, DataObject* dataObject, FunctionalConstraint fc, WriteAccessHandler handler, void* parameter)
 {
-    if (dataObject == NULL) {
+    if (dataObject == NULL)
+    {
         if (DEBUG_IED_SERVER)
             printf("IED_SERVER: IedServer_handlerWriteAccessForDataObject - dataObject == NULL!\n");
     }
@@ -1741,7 +1810,8 @@ IedServer_getFunctionalConstrainedData(IedServer self, DataObject* dataObject, F
 
     int nameLen;
 
-    while (dataObject->modelType == DataObjectModelType) {
+    while (dataObject->modelType == DataObjectModelType)
+    {
         nameLen = strlen(dataObject->name);
         currentStart -= nameLen;
         memcpy(currentStart, dataObject->name, nameLen);
@@ -1774,8 +1844,8 @@ IedServer_getFunctionalConstrainedData(IedServer self, DataObject* dataObject, F
 
     char domainName[65];
 
-    if ((strlen(self->model->name) + strlen(ld->name)) > 64) {
-
+    if ((strlen(self->model->name) + strlen(ld->name)) > 64)
+    {
         if (DEBUG_IED_SERVER)
             printf("IED_SERVER: LD name too long!\n");
 
@@ -1786,8 +1856,8 @@ IedServer_getFunctionalConstrainedData(IedServer self, DataObject* dataObject, F
 
     MmsDomain* domain = MmsDevice_getDomain(self->mmsDevice, domainName);
 
-    if (domain == NULL) {
-
+    if (domain == NULL)
+    {
         if (DEBUG_IED_SERVER)
             printf("IED_SERVER: internal error - domain does not exist!\n");
 
@@ -1892,10 +1962,12 @@ private_IedServer_getClientConnectionByHandle(IedServer self, void* serverConnec
     LinkedList element = LinkedList_getNext(self->clientConnections);
     ClientConnection matchingConnection = NULL;
 
-    while (element != NULL) {
+    while (element != NULL)
+    {
         ClientConnection connection = (ClientConnection) element->data;
 
-        if (private_ClientConnection_getServerConnectionHandle(connection) == serverConnectionHandle) {
+        if (private_ClientConnection_getServerConnectionHandle(connection) == serverConnectionHandle)
+        {
             matchingConnection = connection;
             break;
         }
