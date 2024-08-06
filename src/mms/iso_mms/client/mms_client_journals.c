@@ -115,34 +115,36 @@ parseJournalVariables(uint8_t* buffer, int bufPos, int maxLength, MmsJournalEntr
         switch (tag) {
         case 0x30: /* journalVariable */
 
-            MmsJournalVariable journalVariable = (MmsJournalVariable)
-                GLOBAL_CALLOC(1, sizeof(struct sMmsJournalVariable));
-
-            if (journalVariable)
             {
-                if (parseJournalVariable(buffer, bufPos, length, journalVariable))
+                MmsJournalVariable journalVariable = (MmsJournalVariable)
+                    GLOBAL_CALLOC(1, sizeof(struct sMmsJournalVariable));
+
+                if (journalVariable)
                 {
-                    LinkedList_add(journalEntry->journalVariables, (void*) journalVariable);
+                    if (parseJournalVariable(buffer, bufPos, length, journalVariable))
+                    {
+                        LinkedList_add(journalEntry->journalVariables, (void*) journalVariable);
+                    }
+                    else
+                    {
+                        if (journalVariable->tag)
+                            GLOBAL_FREEMEM(journalVariable->tag);
+
+                        if (journalVariable->value)
+                            MmsValue_delete(journalVariable->value);
+
+                        GLOBAL_FREEMEM(journalVariable);
+
+                        return false;
+                    }
                 }
                 else
                 {
-                    if (journalVariable->tag)
-                        GLOBAL_FREEMEM(journalVariable->tag);
-
-                    if (journalVariable->value)
-                        MmsValue_delete(journalVariable->value);
-
-                    GLOBAL_FREEMEM(journalVariable);
+                    if (DEBUG_MMS_CLIENT)
+                        printf("MMS_CLIENT: parseReadJournalResponse: out of memory\n");
 
                     return false;
                 }
-            }
-            else
-            {
-                if (DEBUG_MMS_CLIENT)
-                    printf("MMS_CLIENT: parseReadJournalResponse: out of memory\n");
-
-                return false;
             }
 
             break;
