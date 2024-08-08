@@ -296,8 +296,10 @@ MmsGooseControlBlock_destroy(MmsGooseControlBlock self)
         Semaphore_destroy(self->publisherMutex);
 #endif
 
+#if (CONFIG_IEC61850_L2_GOOSE == 1 || CONFIG_IEC61850_R_GOOSE == 1)
         if (self->publisher)
             GoosePublisher_destroy(self->publisher);
+#endif /* (CONFIG_IEC61850_L2_GOOSE == 1 || CONFIG_IEC61850_R_GOOSE == 1) */
 
         if (self->dataSetValues)
             LinkedList_destroyStatic(self->dataSetValues);
@@ -501,10 +503,14 @@ MmsGooseControlBlock_enable(MmsGooseControlBlock self, MmsMapping* mmsMapping)
 
                 if (mmsMapping->useIntegratedPublisher)
                 {
+#if (CONFIG_IEC61850_L2_GOOSE == 1)
                     if (self->gooseInterfaceId)
                         self->publisher = GoosePublisher_createEx(&commParameters, self->gooseInterfaceId, self->useVlanTag);
                     else
                         self->publisher = GoosePublisher_createEx(&commParameters, self->mmsMapping->gooseInterfaceId, self->useVlanTag);
+#endif /* (CONFIG_IEC61850_L2_GOOSE == 1) */
+
+#if (CONFIG_IEC61850_L2_GOOSE == 1 || CONFIG_IEC61850_R_GOOSE == 1)
 
                     if (self->publisher)
                     {
@@ -544,6 +550,8 @@ MmsGooseControlBlock_enable(MmsGooseControlBlock self, MmsMapping* mmsMapping)
                         if (DEBUG_IED_SERVER)
                             printf("IED_SERVER: Failed to create GOOSE publisher!\n");
                     }
+
+#endif /* (CONFIG_IEC61850_L2_GOOSE == 1 || CONFIG_IEC61850_R_GOOSE == 1) */
                 }
 
                 self->goEna = true;
@@ -585,6 +593,8 @@ MmsGooseControlBlock_disable(MmsGooseControlBlock self, MmsMapping* mmsMapping)
         Semaphore_wait(self->publisherMutex);
 #endif
 
+#if (CONFIG_IEC61850_L2_GOOSE == 1 || CONFIG_IEC61850_R_GOOSE == 1)
+
         if (mmsMapping->useIntegratedPublisher)
         {
             if (self->publisher)
@@ -595,6 +605,8 @@ MmsGooseControlBlock_disable(MmsGooseControlBlock self, MmsMapping* mmsMapping)
                 self->dataSetValues = NULL;
             }
         }
+
+#endif /* (CONFIG_IEC61850_L2_GOOSE == 1 || CONFIG_IEC61850_R_GOOSE == 1) */
 
 #if (CONFIG_IEC61850_SERVICE_TRACKING == 1)
         MmsDataAccessError retVal = DATA_ACCESS_ERROR_SUCCESS;
@@ -623,6 +635,8 @@ MmsGooseControlBlock_checkAndPublish(MmsGooseControlBlock self, uint64_t current
                 Semaphore_wait(self->publisherMutex);
 #endif
 
+#if (CONFIG_IEC61850_L2_GOOSE == 1 || CONFIG_IEC61850_R_GOOSE == 1)
+
                 GoosePublisher_publish(self->publisher, self->dataSetValues);
 
                 if (self->retransmissionsLeft > 0)
@@ -642,6 +656,8 @@ MmsGooseControlBlock_checkAndPublish(MmsGooseControlBlock self, uint64_t current
 
                     self->nextPublishTime = currentTime + self->maxTime;
                 }
+
+#endif /* (CONFIG_IEC61850_L2_GOOSE == 1 || CONFIG_IEC61850_R_GOOSE == 1) */
 
 #if (CONFIG_MMS_THREADLESS_STACK != 1)
                 Semaphore_post(self->publisherMutex);
@@ -667,6 +683,8 @@ MmsGooseControlBlock_setStateChangePending(MmsGooseControlBlock self)
 void
 MmsGooseControlBlock_publishNewState(MmsGooseControlBlock self)
 {
+#if (CONFIG_IEC61850_L2_GOOSE == 1 || CONFIG_IEC61850_R_GOOSE == 1)
+
     if (self->publisher == false)
         return;
 
@@ -701,6 +719,8 @@ MmsGooseControlBlock_publishNewState(MmsGooseControlBlock self)
         Semaphore_post(self->publisherMutex);
 #endif
     }
+
+#endif /* (CONFIG_IEC61850_L2_GOOSE == 1 || CONFIG_IEC61850_R_GOOSE == 1) */
 }
 
 static MmsVariableSpecification*
