@@ -1,7 +1,7 @@
 /*
  *  mms_named_variable_list_service.c
  *
- *  Copyright 2013-2023 Michael Zillgith
+ *  Copyright 2013-2024 Michael Zillgith
  *
  *	This file is part of libIEC61850.
  *
@@ -54,7 +54,8 @@ mmsServer_callVariableListChangedHandler(MmsVariableListAccessType accessType, M
 {
 	MmsServer self = connection->server;
 
-	if (self->variableListAccessHandler != NULL) {
+	if (self->variableListAccessHandler)
+	{
 		if (DEBUG_MMS_SERVER)
 			printf("MMS_SERVER: call MmsNamedVariableListAccessHandler for new list %s\n", listName);
 
@@ -125,7 +126,8 @@ mmsServer_handleDeleteNamedVariableListRequest(MmsServerConnection connection,
 
 	asn_dec_rval_t rval = ber_decode(NULL, &asn_DEF_MmsPdu, (void**) &mmsPdu, buffer, maxBufPos);
 
-	if (rval.code != RC_OK) {
+	if (rval.code != RC_OK)
+	{
 		mmsMsg_createMmsRejectPdu(&invokeId, MMS_ERROR_REJECT_INVALID_PDU, response);
 		goto exit_function;
 	}
@@ -136,7 +138,8 @@ mmsServer_handleDeleteNamedVariableListRequest(MmsServerConnection connection,
     {
         request = &(mmsPdu->choice.confirmedRequestPdu.confirmedServiceRequest.choice.deleteNamedVariableList);
     }
-    else {
+    else
+	{
         mmsMsg_createMmsRejectPdu(&invokeId, MMS_ERROR_REJECT_INVALID_PDU, response);
         goto exit_function;
     }
@@ -154,7 +157,8 @@ mmsServer_handleDeleteNamedVariableListRequest(MmsServerConnection connection,
 
 	MmsDevice* device = MmsServer_getDevice(connection->server);
 
-	if (scopeOfDelete == DeleteNamedVariableListRequest__scopeOfDelete_specific) {
+	if (scopeOfDelete == DeleteNamedVariableListRequest__scopeOfDelete_specific)
+	{
 		MmsError serviceError = MMS_ERROR_NONE;
 
 		int numberMatched = 0;
@@ -164,8 +168,10 @@ mmsServer_handleDeleteNamedVariableListRequest(MmsServerConnection connection,
 
 		int i;
 
-		for (i = 0; i < numberItems; i++) {
-			if (request->listOfVariableListName->list.array[i]->present == ObjectName_PR_domainspecific) {
+		for (i = 0; i < numberItems; i++)
+		{
+			if (request->listOfVariableListName->list.array[i]->present == ObjectName_PR_domainspecific)
+			{
 				char domainName[65];
 				char listName[65];
 
@@ -177,18 +183,20 @@ mmsServer_handleDeleteNamedVariableListRequest(MmsServerConnection connection,
 
 				MmsDomain* domain = MmsDevice_getDomain(device, domainName);
 
-				if (domain != NULL) {
-
+				if (domain)
+				{
 					MmsNamedVariableList variableList = MmsDomain_getNamedVariableList(domain, listName);
 
-					if (variableList != NULL) {
+					if (variableList)
+					{
 						numberMatched++;
 
-						if (MmsNamedVariableList_isDeletable(variableList)) {
-
+						if (MmsNamedVariableList_isDeletable(variableList))
+						{
 							MmsError deleteError = mmsServer_callVariableListChangedHandler(MMS_VARLIST_DELETE, MMS_DOMAIN_SPECIFIC, domain, listName, connection);
 
-							if (deleteError == MMS_ERROR_NONE) {
+							if (deleteError == MMS_ERROR_NONE)
+							{
 								MmsDomain_deleteNamedVariableList(domain, listName);
 								numberDeleted++;
 							}
@@ -198,7 +206,8 @@ mmsServer_handleDeleteNamedVariableListRequest(MmsServerConnection connection,
 					}
 				}
 			}
-			else if (request->listOfVariableListName->list.array[i]->present == ObjectName_PR_aaspecific) {
+			else if (request->listOfVariableListName->list.array[i]->present == ObjectName_PR_aaspecific)
+			{
 				char listName[65];
 
 				mmsMsg_copyAsn1IdentifierToStringBuffer(request->listOfVariableListName->list.array[i]->choice.aaspecific,
@@ -206,12 +215,14 @@ mmsServer_handleDeleteNamedVariableListRequest(MmsServerConnection connection,
 
 				MmsNamedVariableList variableList = MmsServerConnection_getNamedVariableList(connection, listName);
 
-				if (variableList != NULL) {
+				if (variableList)
+				{
 					numberMatched++;
 
 					MmsError deleteError = mmsServer_callVariableListChangedHandler(MMS_VARLIST_DELETE, MMS_ASSOCIATION_SPECIFIC, NULL, listName, connection);
 
-					if (deleteError == MMS_ERROR_NONE) {
+					if (deleteError == MMS_ERROR_NONE)
+					{
 						numberDeleted++;
 						MmsServerConnection_deleteNamedVariableList(connection, listName);
 					}
@@ -219,7 +230,8 @@ mmsServer_handleDeleteNamedVariableListRequest(MmsServerConnection connection,
 						serviceError = deleteError;
 				}
 			}
-			else if (request->listOfVariableListName->list.array[i]->present == ObjectName_PR_vmdspecific) {
+			else if (request->listOfVariableListName->list.array[i]->present == ObjectName_PR_vmdspecific)
+			{
 				char listName[65];
 
 				mmsMsg_copyAsn1IdentifierToStringBuffer(request->listOfVariableListName->list.array[i]->choice.vmdspecific,
@@ -227,12 +239,14 @@ mmsServer_handleDeleteNamedVariableListRequest(MmsServerConnection connection,
 
 				MmsNamedVariableList variableList = mmsServer_getNamedVariableListWithName(device->namedVariableLists, listName);
 
-				if (variableList != NULL) {
+				if (variableList)
+				{
 					numberMatched++;
 
 					MmsError deleteError = mmsServer_callVariableListChangedHandler(MMS_VARLIST_DELETE, MMS_VMD_SPECIFIC, NULL, listName, connection);
 
-					if (deleteError == MMS_ERROR_NONE) {
+					if (deleteError == MMS_ERROR_NONE)
+					{
 						numberDeleted++;
 						mmsServer_deleteVariableList(device->namedVariableLists, listName);
 					}
@@ -247,7 +261,8 @@ mmsServer_handleDeleteNamedVariableListRequest(MmsServerConnection connection,
 		else
 			createServiceErrorDeleteVariableLists(invokeId, response, serviceError, numberDeleted);
 	}
-	else {
+	else
+	{
 		mmsMsg_createServiceErrorPdu(invokeId, response, MMS_ERROR_ACCESS_OBJECT_ACCESS_UNSUPPORTED);
 	}
 
@@ -292,14 +307,16 @@ checkIfVariableExists(MmsDevice* device, MmsAccessSpecifier* accessSpecifier)
 	if (variableSpec == NULL)
 		return false;
 
-	if (accessSpecifier->arrayIndex != -1) {
+	if (accessSpecifier->arrayIndex != -1)
+	{
 		if (variableSpec->type != MMS_ARRAY)
 			return false;
 
 		if (accessSpecifier->arrayIndex >= variableSpec->typeSpec.array.elementCount)
 			return false;
 
-		if (accessSpecifier->componentName != NULL) {
+		if (accessSpecifier->componentName)
+		{
 			variableSpec = variableSpec->typeSpec.array.elementTypeSpec;
 
 			if (MmsVariableSpecification_getNamedVariableRecursive(variableSpec, accessSpecifier->componentName) == NULL)
@@ -323,9 +340,11 @@ createNamedVariableList(MmsServer server, MmsDomain* domain, MmsDevice* device,
 		printf("MMS_SERVER: create-named-variable-list (%i variable(s) | max=%i)\n", variableCount, server->maxDataSetEntries);
 
 #if (CONFIG_MMS_SERVER_CONFIG_SERVICES_AT_RUNTIME == 1)
-	if ((variableCount == 0 ) || (variableCount > server->maxDataSetEntries)) {
+	if ((variableCount == 0 ) || (variableCount > server->maxDataSetEntries))
+	{
 #else
-	if ((variableCount == 0 ) || (variableCount > CONFIG_MMS_MAX_NUMBER_OF_DATA_SET_MEMBERS)) {
+	if ((variableCount == 0 ) || (variableCount > CONFIG_MMS_MAX_NUMBER_OF_DATA_SET_MEMBERS))
+	{
 #endif
 		*mmsError = MMS_ERROR_DEFINITION_OTHER;
 		goto exit_function;
@@ -334,7 +353,8 @@ createNamedVariableList(MmsServer server, MmsDomain* domain, MmsDevice* device,
 	namedVariableList = MmsNamedVariableList_create(domain, variableListName, true);
 
 	int i;
-	for (i = 0; i < variableCount; i++) {
+	for (i = 0; i < variableCount; i++)
+	{
 		VariableSpecification_t* varSpec =
 				&request->listOfVariable.list.array[i]->variableSpecification;
 
@@ -344,10 +364,10 @@ createNamedVariableList(MmsServer server, MmsDomain* domain, MmsDevice* device,
 		char* componentName = NULL;
 
 		/* Handle alternate access specification - for array element definition */
-		if (request->listOfVariable.list.array[i]->alternateAccess != NULL) {
-
-			if (request->listOfVariable.list.array[i]->alternateAccess->list.count != 1) {
-
+		if (request->listOfVariable.list.array[i]->alternateAccess)
+		{
+			if (request->listOfVariable.list.array[i]->alternateAccess->list.count != 1)
+			{
 				if (DEBUG_MMS_SERVER)
 					printf("MMS_SERVER: create-named-variable list - only one alternate access specification allowed!\n");
 
@@ -355,8 +375,8 @@ createNamedVariableList(MmsServer server, MmsDomain* domain, MmsDevice* device,
 				namedVariableList = NULL;
 				break;
 			}
-			else {
-
+			else
+			{
 				struct AlternateAccess__Member* alternateAccess =
 						request->listOfVariable.list.array[i]->alternateAccess->list.array[0];
 
@@ -368,14 +388,16 @@ createNamedVariableList(MmsServer server, MmsDomain* domain, MmsDevice* device,
 					asn_INTEGER2long(&(alternateAccess->choice.unnamed->choice.selectAlternateAccess.accessSelection.choice.index),
 							&arrayIndex);
 
-					if (alternateAccess->choice.unnamed->choice.selectAlternateAccess.alternateAccess) {
+					if (alternateAccess->choice.unnamed->choice.selectAlternateAccess.alternateAccess)
+					{
 						componentNameBuf[0] = 0;
 
 						componentName = mmsMsg_getComponentNameFromAlternateAccess(
 								alternateAccess->choice.unnamed->choice.selectAlternateAccess.alternateAccess,
 								componentNameBuf, 0);
 					}
-					else {
+					else
+					{
 						if (DEBUG_MMS_SERVER)
 							printf("MMS_SERVER: create-named-variable-list - component specification is missing!\n");
 					}
@@ -387,7 +409,8 @@ createNamedVariableList(MmsServer server, MmsDomain* domain, MmsDevice* device,
 				{
 					asn_INTEGER2long(&(alternateAccess->choice.unnamed->choice.selectAccess.choice.index), &arrayIndex);
 				}
-				else {
+				else
+				{
 					MmsNamedVariableList_destroy(namedVariableList);
 					namedVariableList = NULL;
 					*mmsError = MMS_ERROR_DEFINITION_INVALID_ADDRESS;
@@ -396,8 +419,8 @@ createNamedVariableList(MmsServer server, MmsDomain* domain, MmsDevice* device,
 			}
 		}
 
-		if (varSpec->present == VariableSpecification_PR_name) {
-
+		if (varSpec->present == VariableSpecification_PR_name)
+		{
 			char variableName[65];
 			char domainId[65];
 
@@ -422,14 +445,15 @@ createNamedVariableList(MmsServer server, MmsDomain* domain, MmsDevice* device,
 				printf("MMS SERVER: add named variable list entry: %s/%s(%li)%s\n", MmsDomain_getName(elementDomain), variableName, arrayIndex, componentName);
 
 			/* check if element exists */
-			if (checkIfVariableExists(device, &accessSpecifier) == true) {
+			if (checkIfVariableExists(device, &accessSpecifier) == true)
+			{
 				MmsNamedVariableListEntry variable =
 						MmsNamedVariableListEntry_create(accessSpecifier);
 
 				MmsNamedVariableList_addVariable(namedVariableList, variable);
 			}
-			else {
-
+			else
+			{
 				if (DEBUG_MMS_SERVER)
 					printf("MMS_SERVER: failed - variable does not exist!\n");
 
@@ -439,7 +463,8 @@ createNamedVariableList(MmsServer server, MmsDomain* domain, MmsDevice* device,
 				*mmsError = MMS_ERROR_DEFINITION_OBJECT_UNDEFINED;
 			}
 		}
-		else {
+		else
+		{
 			MmsNamedVariableList_destroy(namedVariableList);
 			namedVariableList = NULL;
 			*mmsError = MMS_ERROR_DEFINITION_INVALID_ADDRESS;
@@ -467,7 +492,8 @@ mmsServer_handleDefineNamedVariableListRequest(
 
 	asn_dec_rval_t rval = ber_decode(NULL, &asn_DEF_MmsPdu, (void**) &mmsPdu, buffer, maxBufPos);
 
-	if (rval.code != RC_OK) {
+	if (rval.code != RC_OK)
+	{
 		mmsMsg_createMmsRejectPdu(&invokeId, MMS_ERROR_REJECT_INVALID_PDU, response);
 		goto exit_free_struct;
 	}
@@ -478,18 +504,20 @@ mmsServer_handleDefineNamedVariableListRequest(
 	{
 		request = &(mmsPdu->choice.confirmedRequestPdu.confirmedServiceRequest.choice.defineNamedVariableList);
 	}
-	else {
+	else
+	{
 		mmsMsg_createMmsRejectPdu(&invokeId, MMS_ERROR_REJECT_INVALID_PDU, response);
 		goto exit_free_struct;
 	}
 
 	MmsDevice* device = MmsServer_getDevice(connection->server);
 
-	if (request->variableListName.present == ObjectName_PR_domainspecific) {
-
+	if (request->variableListName.present == ObjectName_PR_domainspecific)
+	{
 		char domainName[65];
 
-		if (request->variableListName.choice.domainspecific.domainId.size > 64) {
+		if (request->variableListName.choice.domainspecific.domainId.size > 64)
+		{
 			mmsMsg_createServiceErrorPdu(invokeId, response, MMS_ERROR_ACCESS_OBJECT_NON_EXISTENT);
 			goto exit_free_struct;
 		}
@@ -500,19 +528,23 @@ mmsServer_handleDefineNamedVariableListRequest(
 
 		MmsDomain* domain = MmsDevice_getDomain(device, domainName);
 
-		if (domain == NULL) {
+		if (domain == NULL)
+		{
 			mmsMsg_createServiceErrorPdu(invokeId, response, MMS_ERROR_ACCESS_OBJECT_NON_EXISTENT);
 			goto exit_free_struct;
 		}
 
 #if (CONFIG_MMS_SERVER_CONFIG_SERVICES_AT_RUNTIME == 1)
-		if (LinkedList_size(domain->namedVariableLists) < connection->server->maxDomainSpecificDataSets) {
+		if (LinkedList_size(domain->namedVariableLists) < connection->server->maxDomainSpecificDataSets)
+		{
 #else
-		if (LinkedList_size(domain->namedVariableLists) < CONFIG_MMS_MAX_NUMBER_OF_DOMAIN_SPECIFIC_DATA_SETS) {
+		if (LinkedList_size(domain->namedVariableLists) < CONFIG_MMS_MAX_NUMBER_OF_DOMAIN_SPECIFIC_DATA_SETS)
+		{
 #endif
 			char variableListName[65];
 
-			if (request->variableListName.choice.domainspecific.itemId.size > 64) {
+			if (request->variableListName.choice.domainspecific.itemId.size > 64)
+			{
 				mmsMsg_createServiceErrorPdu(invokeId, response, MMS_ERROR_ACCESS_OBJECT_NON_EXISTENT);
 				goto exit_free_struct;
 			}
@@ -521,24 +553,28 @@ mmsServer_handleDefineNamedVariableListRequest(
 					request->variableListName.choice.domainspecific.itemId.buf,
 					request->variableListName.choice.domainspecific.itemId.size, sizeof(variableListName));
 
-			if (MmsDomain_getNamedVariableList(domain, variableListName) != NULL) {
+			if (MmsDomain_getNamedVariableList(domain, variableListName))
+			{
 				mmsMsg_createServiceErrorPdu(invokeId, response, MMS_ERROR_DEFINITION_OBJECT_EXISTS);
 			}
-			else {
+			else
+			{
 				MmsError mmsError;
 
 				MmsNamedVariableList namedVariableList = createNamedVariableList(connection->server, domain, device,
 								request, variableListName, &mmsError);
 
-				if (namedVariableList != NULL) {
-
+				if (namedVariableList)
+				{
 					mmsError = mmsServer_callVariableListChangedHandler(MMS_VARLIST_CREATE, MMS_DOMAIN_SPECIFIC, domain, variableListName, connection);
 
-					if (mmsError == MMS_ERROR_NONE) {
+					if (mmsError == MMS_ERROR_NONE)
+					{
 						MmsDomain_addNamedVariableList(domain, namedVariableList);
 						createDefineNamedVariableListResponse(invokeId, response);
 					}
-					else {
+					else
+					{
 						MmsNamedVariableList_destroy(namedVariableList);
 						mmsMsg_createServiceErrorPdu(invokeId, response, mmsError);
 					}
@@ -549,20 +585,21 @@ mmsServer_handleDefineNamedVariableListRequest(
 		}
 		else
 			mmsMsg_createServiceErrorPdu(invokeId, response, MMS_ERROR_RESOURCE_CAPABILITY_UNAVAILABLE);
-
-
 	}
-	else if (request->variableListName.present == ObjectName_PR_aaspecific) {
-
+	else if (request->variableListName.present == ObjectName_PR_aaspecific)
+	{
 #if (CONFIG_MMS_SERVER_CONFIG_SERVICES_AT_RUNTIME == 1)
-		if (LinkedList_size(connection->namedVariableLists) < connection->server->maxAssociationSpecificDataSets) {
+		if (LinkedList_size(connection->namedVariableLists) < connection->server->maxAssociationSpecificDataSets)
+		{
 #else
-		if (LinkedList_size(connection->namedVariableLists) < CONFIG_MMS_MAX_NUMBER_OF_ASSOCIATION_SPECIFIC_DATA_SETS) {
+		if (LinkedList_size(connection->namedVariableLists) < CONFIG_MMS_MAX_NUMBER_OF_ASSOCIATION_SPECIFIC_DATA_SETS)
+		{
 #endif
 
 			char variableListName[65];
 
-			if (request->variableListName.choice.aaspecific.size > 64) {
+			if (request->variableListName.choice.aaspecific.size > 64)
+			{
 				mmsMsg_createMmsRejectPdu(&invokeId, MMS_ERROR_REJECT_REQUEST_INVALID_ARGUMENT, response);
 				goto exit_free_struct;
 			}
@@ -571,26 +608,29 @@ mmsServer_handleDefineNamedVariableListRequest(
 					request->variableListName.choice.aaspecific.buf,
 					request->variableListName.choice.aaspecific.size, sizeof(variableListName));
 
-			if (MmsServerConnection_getNamedVariableList(connection, variableListName) != NULL) {
+			if (MmsServerConnection_getNamedVariableList(connection, variableListName))
+			{
 				mmsMsg_createServiceErrorPdu(invokeId, response, MMS_ERROR_DEFINITION_OBJECT_EXISTS);
 			}
-			else {
+			else
+			{
 				MmsError mmsError;
 
 				MmsNamedVariableList namedVariableList = createNamedVariableList(connection->server, NULL, device,
 						request, variableListName, &mmsError);
 
-				if (namedVariableList != NULL) {
-
-					if (mmsServer_callVariableListChangedHandler(MMS_VARLIST_CREATE, MMS_ASSOCIATION_SPECIFIC, NULL, variableListName, connection) == MMS_ERROR_NONE) {
+				if (namedVariableList)
+				{
+					if (mmsServer_callVariableListChangedHandler(MMS_VARLIST_CREATE, MMS_ASSOCIATION_SPECIFIC, NULL, variableListName, connection) == MMS_ERROR_NONE)
+					{
 						MmsServerConnection_addNamedVariableList(connection, namedVariableList);
 						createDefineNamedVariableListResponse(invokeId, response);
 					}
-					else {
+					else
+					{
 						MmsNamedVariableList_destroy(namedVariableList);
 						mmsMsg_createServiceErrorPdu(invokeId, response, MMS_ERROR_ACCESS_OBJECT_ACCESS_DENIED);
 					}
-
 				}
 				else
 					mmsMsg_createServiceErrorPdu(invokeId, response, mmsError);
@@ -599,14 +639,16 @@ mmsServer_handleDefineNamedVariableListRequest(
 		else
 			mmsMsg_createServiceErrorPdu(invokeId, response, MMS_ERROR_RESOURCE_CAPABILITY_UNAVAILABLE);
 	}
-	else if (request->variableListName.present == ObjectName_PR_vmdspecific) {
+	else if (request->variableListName.present == ObjectName_PR_vmdspecific)
+	{
 		LinkedList vmdScopeNVLs = MmsDevice_getNamedVariableLists(connection->server->device);
 
-		if (LinkedList_size(vmdScopeNVLs) < CONFIG_MMS_MAX_NUMBER_OF_VMD_SPECIFIC_DATA_SETS) {
-
+		if (LinkedList_size(vmdScopeNVLs) < CONFIG_MMS_MAX_NUMBER_OF_VMD_SPECIFIC_DATA_SETS)
+		{
 			char variableListName[65];
 
-			if (request->variableListName.choice.vmdspecific.size > 64) {
+			if (request->variableListName.choice.vmdspecific.size > 64)
+			{
 				mmsMsg_createMmsRejectPdu(&invokeId, MMS_ERROR_REJECT_REQUEST_INVALID_ARGUMENT, response);
 				goto exit_free_struct;
 			}
@@ -615,27 +657,31 @@ mmsServer_handleDefineNamedVariableListRequest(
 					request->variableListName.choice.vmdspecific.buf,
 					request->variableListName.choice.vmdspecific.size, sizeof(variableListName));
 
-			if (mmsServer_getNamedVariableListWithName(MmsDevice_getNamedVariableLists(connection->server->device), variableListName) != NULL) {
+			if (mmsServer_getNamedVariableListWithName(MmsDevice_getNamedVariableLists(connection->server->device), variableListName))
+			{
 				mmsMsg_createServiceErrorPdu(invokeId, response, MMS_ERROR_DEFINITION_OBJECT_EXISTS);
 			}
-			else {
+			else
+			{
 				MmsError mmsError;
 
 				MmsNamedVariableList namedVariableList = createNamedVariableList(connection->server, NULL, device,
 						request, variableListName, &mmsError);
 
-				if (namedVariableList != NULL) {
+				if (namedVariableList)
+				{
 					if (mmsServer_callVariableListChangedHandler(MMS_VARLIST_CREATE, MMS_VMD_SPECIFIC, NULL, variableListName, connection)
-							== MMS_ERROR_NONE) {
+							== MMS_ERROR_NONE)
+					{
 						LinkedList_add(vmdScopeNVLs, (void*) namedVariableList);
 
 						createDefineNamedVariableListResponse(invokeId, response);
 					}
-					else {
+					else
+					{
 						MmsNamedVariableList_destroy(namedVariableList);
 						mmsMsg_createServiceErrorPdu(invokeId, response, MMS_ERROR_ACCESS_OBJECT_ACCESS_DENIED);
 					}
-
 				}
 			}
 		}
@@ -708,11 +754,13 @@ createGetNamedVariableListAttributesResponse(int invokeId, ByteBuffer* response,
 		varListResponse->listOfVariable.list.array[i]->variableSpecification.choice.name.choice.
 			domainspecific.itemId.size = strlen(variableEntry->variableName);
 
-		if (variableEntry->arrayIndex != -1) {
+		if (variableEntry->arrayIndex != -1)
+		{
 			varListResponse->listOfVariable.list.array[i]->alternateAccess =
 					mmsClient_createAlternateAccessIndexComponent(variableEntry->arrayIndex, variableEntry->componentName);
 		}
-		else if (variableEntry->componentName) {
+		else if (variableEntry->componentName)
+		{
 			varListResponse->listOfVariable.list.array[i]->alternateAccess =
 					mmsClient_createAlternateAccessComponent(variableEntry->componentName);
 		}
@@ -742,7 +790,8 @@ mmsServer_handleGetNamedVariableListAttributesRequest(
 	asn_dec_rval_t rval = ber_decode(NULL, &asn_DEF_GetNamedVariableListAttributesRequest,
 				(void**) &request, buffer + bufPos, maxBufPos - bufPos);
 
-	if (rval.code != RC_OK) {
+	if (rval.code != RC_OK)
+	{
 		mmsMsg_createMmsRejectPdu(&invokeId, MMS_ERROR_REJECT_INVALID_PDU, response);
 		goto exit_function;
 	}
@@ -753,7 +802,8 @@ mmsServer_handleGetNamedVariableListAttributesRequest(
 		char itemName[65];
 
 		if ((request->choice.domainspecific.domainId.size > 64) ||
-			(request->choice.domainspecific.itemId.size > 64)) {
+			(request->choice.domainspecific.itemId.size > 64))
+		{
 			mmsMsg_createServiceErrorPdu(invokeId, response, MMS_ERROR_ACCESS_OTHER);
 			goto exit_function;
 		}
@@ -776,35 +826,36 @@ mmsServer_handleGetNamedVariableListAttributesRequest(
 			{
 				MmsError accessError = mmsServer_callVariableListChangedHandler(MMS_VARLIST_GET_DIRECTORY, MMS_DOMAIN_SPECIFIC, domain, varList->name, connection);
 
-				if (accessError == MMS_ERROR_NONE) {
-					if (createGetNamedVariableListAttributesResponse(invokeId, response, varList) == false) {
-
+				if (accessError == MMS_ERROR_NONE)
+				{
+					if (createGetNamedVariableListAttributesResponse(invokeId, response, varList) == false)
+					{
 						/* encoding failed - probably because buffer size is too small for message */
 						ByteBuffer_setSize(response, 0);
 
 						mmsMsg_createServiceErrorPdu(invokeId, response, MMS_ERROR_RESOURCE_OTHER);
 					}
 				}
-				else {
+				else
+				{
 					if (DEBUG_MMS_SERVER) printf("MMS get named variable list attributes: variable list %s access error: %i\n", varList->name, accessError);
 
 					mmsMsg_createServiceErrorPdu(invokeId, response, accessError);
 				}
-
 			}
 			else
 				mmsMsg_createServiceErrorPdu(invokeId, response, MMS_ERROR_ACCESS_OBJECT_NON_EXISTENT);
 		}
 		else
 			mmsMsg_createServiceErrorPdu(invokeId, response, MMS_ERROR_ACCESS_OBJECT_NON_EXISTENT);
-
 	}
 #if (MMS_DYNAMIC_DATA_SETS == 1)
 	else if (request->present == ObjectName_PR_aaspecific)
 	{
 		char listName[65];
 
-		if (request->choice.aaspecific.size > 64) {
+		if (request->choice.aaspecific.size > 64)
+		{
 			mmsMsg_createServiceErrorPdu(invokeId, response, MMS_ERROR_ACCESS_OTHER);
 			goto exit_function;
 		}
@@ -820,15 +871,16 @@ mmsServer_handleGetNamedVariableListAttributesRequest(
 
 			if (accessError == MMS_ERROR_NONE)
 			{
-				if (createGetNamedVariableListAttributesResponse(invokeId, response, varList) == false) {
-
+				if (createGetNamedVariableListAttributesResponse(invokeId, response, varList) == false)
+				{
 					/* encoding failed - probably because buffer size is too small for message */
 					ByteBuffer_setSize(response, 0);
 
 					mmsMsg_createServiceErrorPdu(invokeId, response, MMS_ERROR_RESOURCE_OTHER);
 				}
 			}
-			else {
+			else
+			{
 				if (DEBUG_MMS_SERVER) printf("MMS get named variable list attributes: variable list %s access error: %i\n", varList->name, accessError);
 
 				mmsMsg_createServiceErrorPdu(invokeId, response, accessError);
@@ -842,7 +894,8 @@ mmsServer_handleGetNamedVariableListAttributesRequest(
 	{
 		char listName[65];
 
-		if (request->choice.vmdspecific.size > 64) {
+		if (request->choice.vmdspecific.size > 64)
+		{
 			mmsMsg_createServiceErrorPdu(invokeId, response, MMS_ERROR_ACCESS_OTHER);
 			goto exit_function;
 		}
@@ -860,15 +913,16 @@ mmsServer_handleGetNamedVariableListAttributesRequest(
 
 			if (accessError == MMS_ERROR_NONE)
 			{
-				if (createGetNamedVariableListAttributesResponse(invokeId, response, varList) == false) {
-
+				if (createGetNamedVariableListAttributesResponse(invokeId, response, varList) == false)
+				{
 					/* encoding failed - probably because buffer size is too small for message */
 					ByteBuffer_setSize(response, 0);
 
 					mmsMsg_createServiceErrorPdu(invokeId, response, MMS_ERROR_RESOURCE_OTHER);
 				}
 			}
-			else {
+			else
+			{
 				if (DEBUG_MMS_SERVER) printf("MMS get named variable list attributes: variable list %s access error: %i\n", varList->name, accessError);
 
 				mmsMsg_createServiceErrorPdu(invokeId, response, accessError);
@@ -877,7 +931,8 @@ mmsServer_handleGetNamedVariableListAttributesRequest(
 		else
 			mmsMsg_createServiceErrorPdu(invokeId, response, MMS_ERROR_ACCESS_OBJECT_NON_EXISTENT);
 	}
-	else {
+	else
+	{
 		mmsMsg_createServiceErrorPdu(invokeId, response, MMS_ERROR_ACCESS_OBJECT_ACCESS_UNSUPPORTED);
 	}
 

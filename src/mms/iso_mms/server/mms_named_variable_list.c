@@ -28,27 +28,35 @@
 MmsNamedVariableListEntry
 MmsNamedVariableListEntry_create(MmsAccessSpecifier accessSpecifier)
 {
-	MmsNamedVariableListEntry listEntry = (MmsNamedVariableListEntry) GLOBAL_MALLOC(sizeof(MmsAccessSpecifier));
+	MmsNamedVariableListEntry self = (MmsNamedVariableListEntry) GLOBAL_MALLOC(sizeof(MmsAccessSpecifier));
 
-	listEntry->domain = accessSpecifier.domain;
-	listEntry->variableName = StringUtils_copyString(accessSpecifier.variableName);
-	listEntry->arrayIndex = accessSpecifier.arrayIndex;
+	if (self)
+	{
+		self->domain = accessSpecifier.domain;
+		self->variableName = StringUtils_copyString(accessSpecifier.variableName);
+		self->arrayIndex = accessSpecifier.arrayIndex;
 
-	if (accessSpecifier.componentName != NULL)
-		listEntry->componentName = StringUtils_copyString(accessSpecifier.componentName);
-	else
-		listEntry->componentName = NULL;
+		if (accessSpecifier.componentName)
+			self->componentName = StringUtils_copyString(accessSpecifier.componentName);
+		else
+			self->componentName = NULL;
+	}
 
-	return listEntry;
+	return self;
 }
 
 void
 MmsNamedVariableListEntry_destroy(MmsNamedVariableListEntry self)
 {
-	GLOBAL_FREEMEM(self->variableName);
-	if (self->componentName)
-	    GLOBAL_FREEMEM(self->componentName);
-	GLOBAL_FREEMEM(self);
+	if (self)
+	{
+		GLOBAL_FREEMEM(self->variableName);
+
+		if (self->componentName)
+			GLOBAL_FREEMEM(self->componentName);
+
+		GLOBAL_FREEMEM(self);
+	}
 }
 
 MmsDomain*
@@ -58,7 +66,8 @@ MmsNamedVariableListEntry_getDomain(MmsNamedVariableListEntry self)
 }
 
 char*
-MmsNamedVariableListEntry_getVariableName(MmsNamedVariableListEntry self) {
+MmsNamedVariableListEntry_getVariableName(MmsNamedVariableListEntry self)
+{
 	return self->variableName;
 }
 
@@ -67,10 +76,13 @@ MmsNamedVariableList_create(MmsDomain* domain, char* name, bool deletable)
 {
 	MmsNamedVariableList self = (MmsNamedVariableList) GLOBAL_MALLOC(sizeof(struct sMmsNamedVariableList));
 
-	self->deletable = deletable;
-	self->name = StringUtils_copyString(name);
-	self->listOfVariables = LinkedList_create();
-	self->domain = domain;
+	if (self)
+	{
+		self->deletable = deletable;
+		self->name = StringUtils_copyString(name);
+		self->listOfVariables = LinkedList_create();
+		self->domain = domain;
+	}
 
 	return self;
 }
@@ -115,7 +127,10 @@ deleteVariableListEntry(void* listEntry)
 void
 MmsNamedVariableList_destroy(MmsNamedVariableList self)
 {
-	LinkedList_destroyDeep(self->listOfVariables, deleteVariableListEntry);
-	GLOBAL_FREEMEM(self->name);
-	GLOBAL_FREEMEM(self);
+	if (self)
+	{
+		LinkedList_destroyDeep(self->listOfVariables, deleteVariableListEntry);
+		GLOBAL_FREEMEM(self->name);
+		GLOBAL_FREEMEM(self);
+	}
 }
