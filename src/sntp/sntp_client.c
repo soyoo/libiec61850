@@ -169,7 +169,9 @@ parseResponseMessage(SNTPClient self, uint8_t* buffer, int bufSize)
         /* ignore time message */
         if (SNTP_DEBUG)
             printf("WARNING: received clock-not-synchronized from server\n");
-        //TODO call user callback?
+
+        /* TODO call user callback? */
+
         return;
     }
 
@@ -304,9 +306,6 @@ sendRequestMessage(SNTPClient self, const char* serverAddr, int serverPort)
 
     self->lastRequestTimestamp = nsTime;
     self->outStandingRequest = true;
-
-    //if (self->lastReceivedMessage == 0)
-    //    self->lastReceivedMessage = nsTime;
 }
 
 SNTPClient
