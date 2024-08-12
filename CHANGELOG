@@ -10,7 +10,7 @@ New features and improvements:
 - added function to get timestamp of received command (ControlAction_getT) (LIB61850-422)
 - added function IedClientError_toString
 - Java tools: Support for time stamp Val elements
-- BETA: Support for R-GOOSE and R-SMV
+- BETA: Support for R-GOOSE and R-SV
 - BETA: SNTP client code
 
 Other changes:
@@ -22,9 +22,9 @@ Other changes:
 Fixed bugs and vulnerabilities:
 
 - Vulnerability: fixed potential stack buffer overflow in MMS client identity service and other services (LIB61850-447)
-- Vulnerability: fixed out-of-bound read in parseAarePdu function (LIB61850-442)(#513)
-- Vulnerability: ACSE: fixed out-of-bounds read in parseAarqPdu function (LIB61850-441)(#512)
-- GOOSE receiver: added additional length and plausibility checks to fix #509
+- Vulnerability: ACSE: fixed out-of-bound read in parseAarqPdu function (LIB61850-441)(#512)
+- Vulnerability: ACSE: fixed out-of-bound read in parseAarePdu function (LIB61850-442)(#513)
+- Vulnerability: GOOSE receiver: added additional length and plausibility checks to fix (LIB6150-440)(#509)
 - MmsValue_decodeMmsData: add support for empty visible-string, mms-string, and octet-string values (#506)
 - MMS client: fixed - getNameList task can get stuck in while loop when message cannot be sent (LIB61850-347)
 - fix: ssl renegotiation causing handshake failure (#494)
