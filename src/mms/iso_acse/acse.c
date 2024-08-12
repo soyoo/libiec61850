@@ -197,10 +197,17 @@ parseAarePdu(AcseConnection* self, uint8_t* buffer, int bufPos, int maxBufPos)
 
         bufPos = BerDecoder_decodeLength(buffer, &len, bufPos, maxBufPos);
 
+        if (bufPos < 0)
+        {
+            if (DEBUG_ACSE)
+                printf("ACSE: Invalid PDU!\n");
+            return ACSE_ERROR;
+        }
+
         if (len == 0)
             continue;
 
-        if ((bufPos < 0) || (bufPos + len > maxBufPos))
+        if (bufPos + len > maxBufPos)
         {
             if (DEBUG_ACSE)
                 printf("ACSE: Invalid PDU!\n");
@@ -290,10 +297,17 @@ parseAarqPdu(AcseConnection* self, uint8_t* buffer, int bufPos, int maxBufPos)
 
         bufPos = BerDecoder_decodeLength(buffer, &len, bufPos, maxBufPos);
 
+        if (bufPos < 0)
+        {
+            if (DEBUG_ACSE)
+                printf("ACSE: Invalid PDU!\n");
+            return ACSE_ASSOCIATE_FAILED;
+        }
+
         if (len == 0)
             continue;
 
-        if ((bufPos < 0) || (bufPos + len > maxBufPos))
+        if (bufPos + len > maxBufPos)
         {
             if (DEBUG_ACSE)
                 printf("ACSE: Invalid PDU!\n");
