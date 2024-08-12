@@ -1,13 +1,13 @@
 if(WITH_MBEDTLS3)
 include_directories(
-	${CMAKE_CURRENT_LIST_DIR}/tls/mbedtls3
-    ${CMAKE_CURRENT_LIST_DIR}/../third_party/mbedtls/mbedtls-3.6.0/include
+    ${CMAKE_CURRENT_LIST_DIR}/tls/mbedtls3
+    ${MBEDTLS_INCLUDE_DIR}
 )
 else()
 if(WITH_MBEDTLS)
 include_directories(
-	${CMAKE_CURRENT_LIST_DIR}/tls/mbedtls
-    ${CMAKE_CURRENT_LIST_DIR}/../third_party/mbedtls/mbedtls-2.28/include
+    ${CMAKE_CURRENT_LIST_DIR}/tls/mbedtls
+    ${MBEDTLS_INCLUDE_DIR}
 )
 endif(WITH_MBEDTLS)
 endif(WITH_MBEDTLS3)
