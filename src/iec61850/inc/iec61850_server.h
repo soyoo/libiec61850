@@ -414,7 +414,7 @@ IedServerConfig_setReportSetting(IedServerConfig self, uint8_t setting, bool isD
  *
  * \param[in] setting one of IEC61850_REPORTSETTINGS_RPT_ID, _BUF_TIME, _DATSET, _TRG_OPS, _OPT_FIELDS, _INTG_PD
  *
- * \return  isDyn true, when setting is writable ("Dyn") or false, when read-only
+ * \return  true, when setting is writable ("Dyn") or false, when read-only
  */
 LIB61850_API bool
 IedServerConfig_getReportSetting(IedServerConfig self, uint8_t setting);
