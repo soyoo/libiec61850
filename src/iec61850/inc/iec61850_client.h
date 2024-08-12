@@ -795,8 +795,9 @@ ClientGooseControlBlock_setDstAddress_appid(ClientGooseControlBlock self, uint16
  ********************************************************/
 
 /**
- * \brief Read access to attributes of a GOOSE control block (GoCB) at the connected server. A GoCB contains
- * the configuration values for a single GOOSE publisher.
+ * \brief Read access to attributes of a GOOSE control block (GoCB) at the connected server.
+ *
+ * A GoCB contains the configuration values for a single GOOSE publisher.
  *
  * The requested GoCB has to be specified by its object IEC 61850 ACSI object reference. E.g.
  *
@@ -824,6 +825,42 @@ ClientGooseControlBlock_setDstAddress_appid(ClientGooseControlBlock self, uint16
 LIB61850_API ClientGooseControlBlock
 IedConnection_getGoCBValues(IedConnection self, IedClientError* error, const char* goCBReference, ClientGooseControlBlock updateGoCB);
 
+typedef void
+(*IedConnection_GetGoCBValuesHandler) (uint32_t invokeId, void* parameter, IedClientError err, ClientGooseControlBlock goCB);
+
+/**
+ * \brief Read access to attributes of a GOOSE control block (GoCB) at the connected server (async version)
+ *
+ * A GoCB contains the configuration values for a single GOOSE publisher.
+ *
+ * The requested GoCB has to be specified by its object IEC 61850 ACSI object reference. E.g.
+ *
+ * "simpleIOGernericIO/LLN0.gcbEvents"
+ *
+ * This function is used to perform the actual read service for the GoCB values.
+ * To access the received values the functions of ClientGooseControlBlock have to be used.
+ *
+ * If called with a NULL argument for the updateGoCB parameter a new ClientGooseControlBlock instance is created
+ * and populated with the values received by the server. It is up to the user to release this object by
+ * calling the ClientGooseControlBlock_destroy function when the object is no longer needed. If called with a reference
+ * to an existing ClientGooseControlBlock instance the values of the attributes will be updated and no new instance
+ * will be created.
+ *
+ * Note: This function maps to a single MMS read request to retrieve the complete GoCB at once.
+ *
+ * \param connection the connection object
+ * \param error the error code if an error occurs
+ * \param goCBReference IEC 61850-7-2 ACSI object reference of the GOOSE control block
+ * \param updateRcb a reference to an existing ClientGooseControlBlock instance or NULL
+ * \param handler the user callback that is called when the service is completed or timed out
+ * \param parameter user provided parameter that is passed to the callback handler
+ *
+ * \return the invoke ID of the request
+ */
+LIB61850_API uint32_t
+IedConnection_getGoCBValuesAsync(IedConnection self, IedClientError* error, const char* goCBReference, ClientGooseControlBlock updateGoCB,
+    IedConnection_GetGoCBValuesHandler handler, void* parameter);
+
 /**
  * \brief Write access to attributes of a GOOSE control block (GoCB) at the connected server
  *
@@ -848,6 +885,35 @@ IedConnection_getGoCBValues(IedConnection self, IedClientError* error, const cha
 LIB61850_API void
 IedConnection_setGoCBValues(IedConnection self, IedClientError* error, ClientGooseControlBlock goCB,
         uint32_t parametersMask, bool singleRequest);
+
+/**
+ * \brief Write access to attributes of a GOOSE control block (GoCB) at the connected server (async version)
+ *
+ * The GoCB and the values to be written are specified with the goCB parameter.
+ *
+ * The parametersMask parameter specifies which attributes of the remote GoCB have to be set by this request.
+ * You can specify multiple attributes by ORing the defined bit values. If all attributes have to be written
+ * GOCB_ELEMENT_ALL can be used.
+ *
+ * The singleRequest parameter specifies the mapping to the corresponding MMS write request. Standard compliant
+ * servers should accept both variants. But some server accept only one variant. Then the value of this parameter
+ * will be of relevance.
+ *
+ * \param connection the connection object
+ * \param error the error code if an error occurs
+ * \param goCB ClientGooseControlBlock instance that actually holds the parameter
+ *            values to be written.
+ * \param parametersMask specifies the parameters contained in the setGoCBValues request.
+ * \param singleRequest specifies if the seGoCBValues services is mapped to a single MMS write request containing
+ *        multiple variables or to multiple MMS write requests.
+ * \param handler the user callback that is called when the service is completed or timed out
+ * \param parameter user provided parameter that is passed to the callback handler
+ *
+ * \return the invoke ID of the request
+ */
+LIB61850_API uint32_t
+IedConnection_setGoCBValuesAsync(IedConnection self, IedClientError* error, ClientGooseControlBlock goCB,
+    uint32_t parametersMask, bool singleRequest, IedConnection_GenericServiceHandler handler, void* parameter);
 
 /** @} */
 

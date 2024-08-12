@@ -235,7 +235,6 @@ IsoConnectionParameters_setTcpParameters(IsoConnectionParameters self, const cha
 LIB61850_API void
 IsoConnectionParameters_setLocalTcpParameters(IsoConnectionParameters self, const char* localIpAddress, int localTcpPort);
 
-
 /**
  * \brief set the remote AP-Title and AE-Qualifier
  *

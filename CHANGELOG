@@ -12,6 +12,7 @@ New features and improvements:
 - Java tools: Support for time stamp Val elements
 - IedServer: added configuration options to IedServerConfig to make RCB elements read-only (LIB61850-404)
 - .NET API: Added functions SetReportSetting and GetReportSetting to IedServerConfig (LIB61850-404)
+- IED client: added functions IedConnection_setRCBValuesAsync and IedConnection_getRCBValuesAsync (LIB61850-334)
 - TLS: TLS version 1.3 can be supported when mbedtls 3.6 is used when compiling the library (using mbedtls 2.28 is still possible)
 - BETA: Support for R-GOOSE and R-SV
 - BETA: SNTP client code

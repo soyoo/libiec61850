@@ -152,6 +152,7 @@ close_connection:
     }
     else {
         printf("Failed to connect to %s:%i\n", hostname, tcpPort);
+        Thread_sleep(60000);
     }
 
     IedConnection_destroy(con);
