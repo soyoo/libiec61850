@@ -364,24 +364,34 @@ TLSConfiguration_create()
         if (self->ciphersuites)
         {
             self->maxCiphersuites = 20;
+            int cipherIndex = 0;
+
+            /* TLS 1.2 cipher suites */
 
             /* mandatory cipher suites by IEC 62351-4:2018 */
-            self->ciphersuites[0] = MBEDTLS_TLS_RSA_WITH_AES_128_CBC_SHA256;
-            /* self->ciphersuites[1] = MBEDTLS_TLS_DH_RSA_WITH_AES_128_GCM_SHA256; */ /* weak - not supported? */
-            self->ciphersuites[1] = MBEDTLS_TLS_DHE_RSA_WITH_AES_128_GCM_SHA256;
-            self->ciphersuites[2] = MBEDTLS_TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256;
+            self->ciphersuites[cipherIndex++] = MBEDTLS_TLS_RSA_WITH_AES_128_CBC_SHA256;
+            /* self->ciphersuites[cipherIndex++] = MBEDTLS_TLS_DH_RSA_WITH_AES_128_GCM_SHA256; */ /* weak - not supported? */
+            self->ciphersuites[cipherIndex++] = MBEDTLS_TLS_DHE_RSA_WITH_AES_128_GCM_SHA256;
+            self->ciphersuites[cipherIndex++] = MBEDTLS_TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256;
 
             /* recommended cipher suites by IEC 62351-4:2018 */
 
-            /* self->ciphersuites[1] = MBEDTLS_TLS_DH_RSA_WITH_AES_128_CBC_SHA256; */ /* weak - not supported?*/
-            /* self->ciphersuites[1] = MBEDTLS_TLS_DH_RSA_WITH_AES_256_GCM_SHA384; */ /* not supported?*/
-            self->ciphersuites[3] = MBEDTLS_TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256;
-            self->ciphersuites[4] = MBEDTLS_TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384;
-            self->ciphersuites[5] = MBEDTLS_TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384;
+            /* self->ciphersuites[cipherIndex++] = MBEDTLS_TLS_DH_RSA_WITH_AES_128_CBC_SHA256; */ /* weak - not supported?*/
+            /* self->ciphersuites[cipherIndex++] = MBEDTLS_TLS_DH_RSA_WITH_AES_256_GCM_SHA384; */ /* not supported?*/
+            self->ciphersuites[cipherIndex++] = MBEDTLS_TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256;
+            self->ciphersuites[cipherIndex++] = MBEDTLS_TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384;
+            self->ciphersuites[cipherIndex++] = MBEDTLS_TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384;
 
             /* additional ciphersuites */
-            self->ciphersuites[6] = MBEDTLS_TLS_RSA_WITH_NULL_SHA256;
-            self->ciphersuites[7] = MBEDTLS_TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384;
+            self->ciphersuites[cipherIndex++] = MBEDTLS_TLS_RSA_WITH_NULL_SHA256;
+            self->ciphersuites[cipherIndex++] = MBEDTLS_TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384;
+
+            /* TLS 1.3 cipher suites */
+            self->ciphersuites[cipherIndex++] = MBEDTLS_TLS1_3_AES_128_GCM_SHA256; /* mandatory according IEC 62351-3:2023 */
+            self->ciphersuites[cipherIndex++] = MBEDTLS_TLS1_3_AES_256_GCM_SHA384; /* mandatory according IEC 62351-3:2023 */
+            self->ciphersuites[cipherIndex++] = MBEDTLS_TLS1_3_CHACHA20_POLY1305_SHA256; /* optional according IEC 62351-3:2023 */
+            self->ciphersuites[cipherIndex++] = MBEDTLS_TLS1_3_AES_128_CCM_SHA256; /* mandatory according IEC 62351-3:2023 */
+            self->ciphersuites[cipherIndex++] = MBEDTLS_TLS1_3_AES_128_CCM_8_SHA256 ; /* optional according IEC 62351-3:2023 */
         }
     }
 
@@ -610,49 +620,54 @@ TLSConfiguration_setRenegotiationTime(TLSConfiguration self, int timeInMs)
 void
 TLSConfiguration_destroy(TLSConfiguration self)
 {
-    if (self->useSessionResumption)
+    if (self)
     {
-        if (mbedtls_ssl_conf_get_endpoint(&(self->conf)) == MBEDTLS_SSL_IS_CLIENT)
+        if (self->useSessionResumption)
         {
-            if (self->savedSession)
+            if (mbedtls_ssl_conf_get_endpoint(&(self->conf)) == MBEDTLS_SSL_IS_CLIENT)
             {
-                mbedtls_ssl_session_free(self->savedSession);
-                GLOBAL_FREEMEM(self->savedSession);
+                if (self->savedSession)
+                {
+                    mbedtls_ssl_session_free(self->savedSession);
+                    GLOBAL_FREEMEM(self->savedSession);
+                }
+            }
+            else
+            {
+                mbedtls_ssl_cache_free(&(self->cache));
             }
         }
-        else
+
+        mbedtls_x509_crt_free(&(self->ownCertificate));
+        mbedtls_x509_crt_free(&(self->cacerts));
+        mbedtls_x509_crl_free(&(self->crl));
+        mbedtls_pk_free(&(self->ownKey));
+        mbedtls_ssl_config_free(&(self->conf));
+        mbedtls_ctr_drbg_free(&(self->ctr_drbg));
+        mbedtls_entropy_free(&(self->entropy));
+
+        LinkedList certElem = LinkedList_getNext(self->allowedCertificates);
+
+        while (certElem)
         {
-            mbedtls_ssl_cache_free(&(self->cache));
+            mbedtls_x509_crt* cert = (mbedtls_x509_crt*) LinkedList_getData(certElem);
+
+            mbedtls_x509_crt_free(cert);
+
+            certElem = LinkedList_getNext(certElem);
         }
+
+        LinkedList_destroy(self->allowedCertificates);
+
+        GLOBAL_FREEMEM(self->ciphersuites);
+
+        psaInitCounter--;
+
+        if (psaInitCounter < 1)
+            mbedtls_psa_crypto_free();
+
+        GLOBAL_FREEMEM(self);
     }
-
-    mbedtls_x509_crt_free(&(self->ownCertificate));
-    mbedtls_x509_crt_free(&(self->cacerts));
-    mbedtls_x509_crl_free(&(self->crl));
-    mbedtls_pk_free(&(self->ownKey));
-    mbedtls_ssl_config_free(&(self->conf));
-    mbedtls_ctr_drbg_free(&(self->ctr_drbg));
-    mbedtls_entropy_free(&(self->entropy));
-
-    LinkedList certElem = LinkedList_getNext(self->allowedCertificates);
-
-    while (certElem)
-    {
-        mbedtls_x509_crt* cert = (mbedtls_x509_crt*) LinkedList_getData(certElem);
-
-        mbedtls_x509_crt_free(cert);
-
-        certElem = LinkedList_getNext(certElem);
-    }
-
-    LinkedList_destroy(self->allowedCertificates);
-
-    psaInitCounter--;
-
-    if (psaInitCounter < 1)
-        mbedtls_psa_crypto_free();
-
-    GLOBAL_FREEMEM(self);
 }
 
 static void

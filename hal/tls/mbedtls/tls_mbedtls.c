@@ -604,42 +604,47 @@ TLSConfiguration_setRenegotiationTime(TLSConfiguration self, int timeInMs)
 void
 TLSConfiguration_destroy(TLSConfiguration self)
 {
-    if (self->useSessionResumption)
+    if (self)
     {
-        if (self->conf.endpoint == MBEDTLS_SSL_IS_CLIENT)
+        if (self->useSessionResumption)
         {
-            if (self->savedSession)
+            if (self->conf.endpoint == MBEDTLS_SSL_IS_CLIENT)
             {
-                mbedtls_ssl_session_free(self->savedSession);
-                GLOBAL_FREEMEM(self->savedSession);
+                if (self->savedSession)
+                {
+                    mbedtls_ssl_session_free(self->savedSession);
+                    GLOBAL_FREEMEM(self->savedSession);
+                }
+            }
+            else
+            {
+                mbedtls_ssl_cache_free(&(self->cache));
             }
         }
-        else
+
+        mbedtls_x509_crt_free(&(self->ownCertificate));
+        mbedtls_x509_crt_free(&(self->cacerts));
+        mbedtls_x509_crl_free(&(self->crl));
+        mbedtls_pk_free(&(self->ownKey));
+        mbedtls_ssl_config_free(&(self->conf));
+
+        LinkedList certElem = LinkedList_getNext(self->allowedCertificates);
+
+        while (certElem)
         {
-            mbedtls_ssl_cache_free(&(self->cache));
+            mbedtls_x509_crt* cert = (mbedtls_x509_crt*) LinkedList_getData(certElem);
+
+            mbedtls_x509_crt_free(cert);
+
+            certElem = LinkedList_getNext(certElem);
         }
+
+        LinkedList_destroy(self->allowedCertificates);
+
+        GLOBAL_FREEMEM(self->ciphersuites);
+
+        GLOBAL_FREEMEM(self);
     }
-
-    mbedtls_x509_crt_free(&(self->ownCertificate));
-    mbedtls_x509_crt_free(&(self->cacerts));
-    mbedtls_x509_crl_free(&(self->crl));
-    mbedtls_pk_free(&(self->ownKey));
-    mbedtls_ssl_config_free(&(self->conf));
-
-    LinkedList certElem = LinkedList_getNext(self->allowedCertificates);
-
-    while (certElem)
-    {
-        mbedtls_x509_crt* cert = (mbedtls_x509_crt*) LinkedList_getData(certElem);
-
-        mbedtls_x509_crt_free(cert);
-
-        certElem = LinkedList_getNext(certElem);
-    }
-
-    LinkedList_destroy(self->allowedCertificates);
-
-    GLOBAL_FREEMEM(self);
 }
 
 static void
