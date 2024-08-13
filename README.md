@@ -55,7 +55,7 @@ The library support the following IEC 61850 protocol features:
 * GOOSE and SV control block handling
 * Support for R-session protocol/R-GOOSE/R-SMV (BETA)
 * Simple SNTP client code (BETA)
-* TLS support
+* TLS support (IEC 62351-3/4)
 * C and C#/.NET API
 
 
@@ -88,6 +88,16 @@ You can test the server examples by using a generic client or the provided clien
 
 ## Building the library with TLS support
 
+The library has an implementation agnostic interface for TLS configuration.
+
+Currently it comes with two different implementations of this interface.
+
+One for the old mbedtls 2.28 LTS version that support TLS versions up to TLS 1.2.
+
+Another implementation support the current mbedtls 3.6.0 version. This newer mbedtls version supports only TLS 1.2 and 1.3.
+
+### mbedtls 2.28
+
 Download, unpack, and copy mbedtls-2.28 into the third_party/mbedtls folder.
 
 NOTE: The current version support mbedtls version 2.28. When you download the source archive from https://tls.mbed.org/ you have to rename the extracted folder to "mbedtls-2.28".
@@ -99,6 +109,20 @@ make WITH_MBEDTLS=1
 ```
 
 When using CMake the library is built automatically with TLS support when the folder third_party/mbedtls/mbedtls-2.28 is present.
+
+### mbedtls 3.6
+
+Alternatively you can also use mbedtls 3.6.
+
+Download, unpack, and copy mbedtls-3.6.0 into the third_party/mbedtls folder
+
+In the main libiec61850 folder run
+
+```
+make WITH_MBEDTLS3=1
+```
+
+When using CMake the library is built automatically with TLS support when the folder third_party/mbedtls/mbedtls-3.6.0 is present.
 
 ## Installing the library and the API headers
 
@@ -119,7 +143,7 @@ For the cmake build script you have to provide the CMAKE_INSTALL_PREFIX variable
 
 ## Building on windows with GOOSE support
 
-To build the library and run libiec61850 applications with GOOSE support on Windows (7/8/10) the use of a third-party library (winpcap) is required. This is necessary because current versions of Windows have no working support for raw sockets. You can download winpcap here (http://www.winpcap.org).
+To build the library and run libiec61850 applications with GOOSE support on Windows (10/11) the use of a third-party library (winpcap) is required. This is necessary because current versions of Windows have no working support for raw sockets. You can download winpcap here (http://www.winpcap.org).
 
 1. Download and install winpcap. Make sure that the winpcap driver is loaded at boot time (you can choose this option at the last screen of the winpcap installer).
 2. Reboot the system (you can do this also later, but you need to reboot or load the winpcap driver before running any llibiec61850 applications that use GOOSE).

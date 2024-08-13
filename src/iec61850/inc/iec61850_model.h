@@ -1,7 +1,7 @@
 /*
  *  model.h
  *
- *  Copyright 2013-2016 Michael Zillgith
+ *  Copyright 2013-2024 Michael Zillgith
  *
  *  This file is part of libIEC61850.
  *
@@ -36,6 +36,8 @@ extern "C" {
 
 /**
  * @defgroup DATA_MODEL General data model definitions, access and iteration functions
+ *
+ * \brief Functions and structures to access and iterate the IEC 61850 data model
  *
  * @{
  */

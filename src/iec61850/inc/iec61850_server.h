@@ -32,6 +32,11 @@ extern "C" {
 #endif
 
 /** \defgroup server_api_group IEC 61850/MMS server API
+ *
+ * \brief IEC 61850/MMS server API for libiec61850.
+ *
+ * This API can be used to create, configure, and run IEC 61850/MMS server instances.
+ *
  *  @{
  */
 
@@ -41,6 +46,15 @@ extern "C" {
 #include "hal_filesystem.h"
 #include "iso_connection_parameters.h"
 #include "iec61850_config_file_parser.h"
+
+/**
+ * @defgroup IEC61850_SERVER_CONFIG Server configuration related functions
+ *
+ * \brief Functions to handle server independent configuration settings to define
+ *        services, features, and other behavior of IEC 61850 server instances.
+ *
+ * @{
+ */
 
 #define IEC61850_REPORTSETTINGS_RPT_ID 1
 #define IEC61850_REPORTSETTINGS_BUF_TIME 2
@@ -419,6 +433,16 @@ IedServerConfig_setReportSetting(IedServerConfig self, uint8_t setting, bool isD
 LIB61850_API bool
 IedServerConfig_getReportSetting(IedServerConfig self, uint8_t setting);
 
+/**@}*/
+
+/**
+ * @defgroup IEC61850_SERVER_GENERAL General server setup and management functions
+ *
+ * \brief Functions to create, configure, and manage an IEC 61850 server instance.
+ *
+ * @{
+ */
+
 /**
  * An opaque handle for an IED server instance
  */
@@ -428,13 +452,6 @@ typedef struct sIedServer* IedServer;
  * An opaque handle for a client connection
  */
 typedef struct sClientConnection* ClientConnection;
-
-/**
- * @defgroup IEC61850_SERVER_GENERAL General server setup and management functions
- *
- * @{
- */
-
 
 /**
  * \brief Create a new IedServer instance
@@ -522,6 +539,18 @@ IedServer_setServerIdentity(IedServer self, const char* vendor, const char* mode
  */
 LIB61850_API void
 IedServer_setFilestoreBasepath(IedServer self, const char* basepath);
+
+/**
+ * \brief Assign a \ref LogStorage instance to a log reference
+ *
+ * \note configuration option CONFIG_IEC61850_LOG_SERVICE is required
+ *
+ * \param self the IedServer instance
+ * \param logRef the log reference to assign the log storage to
+ * \param logStorage the log storage instance to assign
+ */
+LIB61850_API void
+IedServer_setLogStorage(IedServer self, const char* logRef, LogStorage logStorage);
 
 /**
  * \brief Start handling client connections
@@ -651,7 +680,7 @@ IedServer_getMmsServer(IedServer self);
  * then configured GOOSE control blocks keep inactive until a MMS client enables
  * them by writing to the GOOSE control block.
  *
- * Note: This function has no effect when CONFIG_INCLUDE_GOOSE_SUPPORT is not set.
+ * \note This function has no effect when CONFIG_INCLUDE_GOOSE_SUPPORT is not set.
  *
  * \param self the instance of IedServer to operate on.
  */
@@ -664,7 +693,7 @@ IedServer_enableGoosePublishing(IedServer self);
  * This will set the GoEna attribute of all configured GOOSE control blocks
  * to false. This will stop GOOSE transmission.
  *
- * Note: This function has no effect when CONFIG_INCLUDE_GOOSE_SUPPORT is not set.
+ * \note This function has no effect when CONFIG_INCLUDE_GOOSE_SUPPORT is not set.
  *
  * \param self the instance of IedServer to operate on.
  */
@@ -675,10 +704,11 @@ IedServer_disableGoosePublishing(IedServer self);
  * \brief Set the Ethernet interface to be used by GOOSE publishing
  *
  * This function can be used to set the GOOSE interface ID. If not used or set to NULL the
- * default interface ID from stack_config.h is used. Note the interface ID is operating system
- * specific!
+ * default interface ID from stack_config.h is used.
  *
- * Note: This function has no effect when CONFIG_INCLUDE_GOOSE_SUPPORT is not set.
+ * \note the interface ID is operating system specific!
+ *
+ * \note This function has no effect when CONFIG_INCLUDE_GOOSE_SUPPORT is not set.
  *
  * \param self the instance of IedServer to operate on.
  * \param interfaceId the ID of the ethernet interface to be used for GOOSE publishing
@@ -692,7 +722,7 @@ IedServer_setGooseInterfaceId(IedServer self, const char* interfaceId);
  * This function can be used to set the GOOSE interface ID forG all CBs (parameter ln = NULL) or for
  * a specific GCB specified by the logical node instance and the GCB name.
  *
- * Note: This function has no effect when CONFIG_INCLUDE_GOOSE_SUPPORT is not set.
+ * \note This function has no effect when CONFIG_INCLUDE_GOOSE_SUPPORT is not set.
  *
  * \param self the instance of IedServer to operate on.
  * \param ln the logical node that contains the GCB or NULL to set the ethernet interface ID for all GCBs
@@ -708,7 +738,7 @@ IedServer_setGooseInterfaceIdEx(IedServer self, LogicalNode* ln, const char* gcb
  * This function can be used to enable/disable VLAN tagging for all GCBs (parameter ln = NULL) or for
  * a specific GCB specified by the logical node instance and the GCB name.
  *
- * Note: This function has no effect when CONFIG_INCLUDE_GOOSE_SUPPORT is not set.
+ * \note This function has no effect when CONFIG_INCLUDE_GOOSE_SUPPORT is not set.
  *
  * \param self the instance of IedServer to operate on
  * \param ln the logical node that contains the GCB or NULL to enable/disable VLAN tagging for all GCBs
@@ -738,6 +768,8 @@ IedServer_setTimeQuality(IedServer self, bool leapSecondKnown, bool clockFailure
 /**
  * @defgroup IEC61850_SERVER_CONNECTION_HANDLING Connection handling and client authentication
  *
+ * \brief Functions and callbacks to control client access and connection handling.
+ *
  * @{
  */
 
@@ -759,7 +791,7 @@ IedServer_setAuthenticator(IedServer self, AcseAuthenticator authenticator, void
 /**
  * \brief get the peer address of this connection as string
  *
- * Note: the returned string is only valid as long as the client connection exists. It is save to use
+ * \note the returned string is only valid as long as the client connection exists. It is save to use
  * the string inside of the connection indication callback function.
  *
  * \param self the ClientConnection instance
@@ -771,7 +803,7 @@ ClientConnection_getPeerAddress(ClientConnection self);
 /**
  * \brief get the local address of this connection as string
  *
- * Note: the returned string is only valid as long as the client connection exists. It is save to use
+ * \note the returned string is only valid as long as the client connection exists. It is save to use
  * the string inside of the connection indication callback function.
  *
  * \param self the ClientConnection instance
@@ -830,9 +862,10 @@ IedServer_ignoreClientRequests(IedServer self, bool enable);
 /**
  * @defgroup IEC61850_SERVER_DATA_MODEL_ACCESS Data model access and data update
  *
+ * \brief Functions to access and update the data model of an IEC 61850 server instance.
+ *
  * @{
  */
-
 
 /**
  * \brief Lock the data model for data update.
@@ -1198,12 +1231,10 @@ IedServer_updateQuality(IedServer self, DataAttribute* dataAttribute, Quality qu
 
 /**@}*/
 
-
-LIB61850_API void
-IedServer_setLogStorage(IedServer self, const char* logRef, LogStorage logStorage);
-
 /**
  * @defgroup IEC61850_SERVER_SETTING_GROUPS Server side setting group handling
+ *
+ * \brief Functions and callbacks to handle setting groups on the server side.
  *
  * @{
  */
@@ -1322,6 +1353,8 @@ IedServer_setEditSettingGroupConfirmationHandler(IedServer self, SettingGroupCon
 
 /**
  * @defgroup IEC61850_SERVER_CONTROL Server side control model handling
+ *
+ * \brief Functions and callbacks to handle control model related operations on the server side
  *
  * @{
  */
@@ -1471,7 +1504,7 @@ ControlAction_getT(ControlAction self);
 /**
  * \brief Control model callback to perform the static tests (optional).
  *
- * NOTE: Signature changed in version 1.4!
+ * \note Signature changed in version 1.4!
  *
  * User provided callback function for the control model. It will be invoked after
  * a control operation has been invoked by the client. This callback function is
@@ -1493,13 +1526,14 @@ typedef CheckHandlerResult (*ControlPerformCheckHandler) (ControlAction action, 
 /**
  * \brief Control model callback to perform the dynamic tests (optional).
  *
- * NOTE: Signature changed in version 1.4!
+ * \note  Signature changed in version 1.4!
  *
  * User provided callback function for the control model. It will be invoked after
  * a control operation has been invoked by the client. This callback function is
  * intended to perform the dynamic tests. It should check if the synchronization conditions
  * are met if the synchroCheck parameter is set to true.
- * NOTE: Since version 0.7.9 this function is intended to return immediately. If the operation
+ *
+ * \note Since version 0.7.9 this function is intended to return immediately. If the operation
  * cannot be performed immediately the function SHOULD return CONTROL_RESULT_WAITING and the
  * handler will be invoked again later.
  *
@@ -1517,12 +1551,13 @@ typedef ControlHandlerResult (*ControlWaitForExecutionHandler) (ControlAction ac
 /**
  * \brief Control model callback to actually perform the control operation.
  *
- * NOTE: Signature changed in version 1.4!
+ * \note Signature changed in version 1.4!
  *
  * User provided callback function for the control model. It will be invoked when
  * a control operation happens (Oper). Here the user should perform the control operation
  * (e.g. by setting an digital output or switching a relay).
- * NOTE: Since version 0.7.9 this function is intended to return immediately. If the operation
+ *
+ * \note  Since version 0.7.9 this function is intended to return immediately. If the operation
  * cannot be performed immediately the function SHOULD return CONTROL_RESULT_WAITING and the
  * handler will be invoked again later.
  *
@@ -1551,7 +1586,7 @@ typedef enum {
 /**
  * \brief Control model callback that is called when the select state of a control changes
  *
- * New in version 1.5
+ * \note New in version 1.5
  *
  * \param action the control action parameter that provides access to additional context information
  * \param parameter the parameter that was specified when setting the control handler
@@ -1633,7 +1668,7 @@ IedServer_setSelectStateChangedHandler(IedServer self, DataObject* node, Control
  * \brief Update the control model for the specified controllable data object with the given value and
  *        update "ctlModel" attribute value.
  *
- * NOTE: The corresponding control structures for the control model have to be present in the data model!
+ * \note The corresponding control structures for the control model have to be present in the data model!
  *
  * \param self the instance of IedServer to operate on.
  * \param ctlObject the controllable data object handle
@@ -1646,6 +1681,8 @@ IedServer_updateCtlModel(IedServer self, DataObject* ctlObject, ControlModel val
 
 /**
  * @defgroup IEC61850_SERVER_RCB Server side report control block (RCB) handling
+ *
+ * \brief Functions and callbacks to handle report control blocks (RCBs) on the server side
  *
  * @{
  */
@@ -1690,6 +1727,8 @@ IedServer_setRCBEventHandler(IedServer self, IedServer_RCBEventHandler handler, 
 /**
  * @defgroup IEC61850_SERVER_SVCB Server side sampled values control block (SVCB) handling
  *
+ * \brief Functions and callbacks to handle sampled values control blocks on the server side
+ *
  * @{
  */
 
@@ -1723,6 +1762,8 @@ IedServer_setSVCBHandler(IedServer self, SVControlBlock* svcb, SVCBEventHandler 
 
 /**
  * @defgroup IEC61850_SERVER_GOCB Server side GOOSE control block (GoCB) handling
+ *
+ * \brief Functions and callbacks to handle GOOSE control blocks (GoCBs) on the server side
  *
  * @{
  */
@@ -1779,6 +1820,12 @@ MmsGooseControlBlock_getNdsCom(MmsGooseControlBlock self);
 /**
  * @defgroup IEC61850_SERVER_EXTERNAL_ACCESS Handle external access to data model and access control
  *
+ * \brief Functions and callbacks to handle and restrict external access to the data model and services
+ *
+ * This module provides functions and callbacks to restrict external access to the data model and services of the IEC 61850 server.
+ * They can be used to implement access control mechanisms like role based access control (RBAC) and to restrict access to specific
+ * data objects and data attributes.
+ *
  * @{
  */
 
@@ -1820,7 +1867,7 @@ typedef MmsDataAccessError
  * or denied. If a WriteAccessHandler is set for a specific data attribute - the
  * default write access policy will not be performed for that data attribute.
  *
- * NOTE: If the data attribute has sub data attributes, the WriteAccessHandler is not
+ * \note If the data attribute has sub data attributes, the WriteAccessHandler is not
  * set for the sub data attributes and will not be called when the sub data attribute is
  * written directly!
  *

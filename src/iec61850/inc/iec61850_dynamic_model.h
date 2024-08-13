@@ -39,6 +39,8 @@ extern "C" {
 /**
  * @defgroup DYNAMIC_MODEL General dynamic model creation functions
  *
+ * \brief Functions to dynamically create IEC 61850 data models without using SCL or configuration files
+ *
  * @{
  */
 
