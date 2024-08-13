@@ -3,12 +3,12 @@ Changes to version 1.6.0
 
 New features and improvements:
 
-- Updated array handling (every array element is not a separate ModelNode instance)
+- Updated array handling (every array element is now a separate ModelNode instance)
 - IED server: added additional callbacks to control external access to the data model (required to implement RBAC)
 - IED server: implemented write access handler for array elements and components of array elements (LIB61850-437)
 - IED server: new function IedServer_handleWriteAccessForDataObject (LIB61850-437)
-- added function to get timestamp of received command (ControlAction_getT) (LIB61850-422)
-- added function IedClientError_toString
+- IED server: added function to get timestamp of received command (ControlAction_getT) (LIB61850-422)
+- IED client: added function IedClientError_toString
 - Java tools: Support for time stamp Val elements
 - IedServer: added configuration options to IedServerConfig to make RCB elements read-only (LIB61850-404)
 - .NET API: Added functions SetReportSetting and GetReportSetting to IedServerConfig (LIB61850-404)
@@ -16,6 +16,8 @@ New features and improvements:
 - TLS: TLS version 1.3 can be supported when mbedtls 3.6 is used when compiling the library (using mbedtls 2.28 is still possible)
 - BETA: Support for R-GOOSE and R-SV
 - BETA: SNTP client code
+- IED server: extended config file format to better support arrays (LIB61850-415)
+
 
 Other changes:
 
@@ -39,11 +41,14 @@ Fixed bugs and vulnerabilities:
 - fixed - potential race condition when using IedConnection_installReportHandler and IedConnection_uninstallReportHandler
 - fixed - IEC 61580 server: dataset is not released when RCB.Datset is set to empty string by client (LIB61850-425)
 - Vulnerability: MMS client: fixed - parsing of servicecsSupported in MMS init response is off by one (LIB61850-419)(#469)
+- fixed DPC status bug in beaglebone demo
+- IED cllient: fixed memory leak and memory handling problem in function IedConnection_readDataSetValuesAsync (LIB61850-439)
+- IED server: fixed crash when client tries to write complete SGCB structure
 
 
 
-Changes to version 1.5.3
-------------------------
+Changes to version 1.5.3 (Dec 18, 2023)
+---------------------------------------
 
 New features and improvements:
 
